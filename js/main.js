@@ -5,8 +5,6 @@ console.log("main.js: Script loaded for web version.");
 // グローバル変数定義
 window.allCards = [];
 let isSidebarOpen = true; 
-
-// ログイン関連のグローバル変数
 window.currentRate = 1500;
 window.currentUsername = null;
 window.currentUserId = null;
@@ -15,9 +13,6 @@ window.userMemos = [];
 window.userBattleRecords = [];
 window.userRegisteredDecks = [];
 window.ws = null;
-
-
-// スクリプト注入追跡用
 if (!window._injectedSectionScripts) {
     window._injectedSectionScripts = new Set();
 }
@@ -174,68 +169,29 @@ window.showCardDetailModal = function(card, currentIndex, searchResults) {
 /**
  * コンテンツエリア（サイドバー）の表示/非表示を切り替えます。
  */
-window.toggleContentArea = function(sectionId, forceOpen = false) {
+window.toggleContentArea = function() {
     const contentArea = document.getElementById('tcg-content-area');
-    const mobileOverlay = document.getElementById('mobile-overlay');
+    const birdButton = document.getElementById('tcg-menu-toggle-bird');
     if (!contentArea) return;
 
-    // 現在のウィンドウ幅でPCかスマホかを判断
     const isMobile = window.innerWidth <= 768;
 
     if (isMobile) {
-        // --- スマホ用のロジック ---
-        const isCurrentlyOpen = contentArea.classList.contains('open');
-
-        if (sectionId) {
-            // セクションが指定された場合は、メニューを開いてそのセクションを表示
-            if (!isCurrentlyOpen) {
-                contentArea.classList.add('open');
-                mobileOverlay.classList.add('active');
-            }
-            window.showSection(sectionId);
-        } else {
-            // セクション指定なし（トグル操作）
-            contentArea.classList.toggle('open');
-            mobileOverlay.classList.toggle('active');
-        }
-        isSidebarOpen = contentArea.classList.contains('open');
-
+        contentArea.classList.toggle('open');
     } else {
-        // --- PC用のロジック ---
-        const isCurrentlyOpen = !contentArea.classList.contains('closed');
-        const currentActiveSection = document.querySelector('.tcg-menu-icon.active')?.dataset.section;
-        
-        if (forceOpen) {
-            if (!isCurrentlyOpen) {
-                contentArea.classList.remove('closed');
-            }
-            if(sectionId) window.showSection(sectionId);
-        } else {
-            if (isCurrentlyOpen && currentActiveSection === sectionId) {
-                contentArea.classList.add('closed');
-            } else if (isCurrentlyOpen && sectionId) {
-                window.showSection(sectionId);
-            } else if (!isCurrentlyOpen) {
-                contentArea.classList.remove('closed');
-                const targetSection = sectionId || currentActiveSection || 'home';
-                window.showSection(targetSection);
-            } else if (isCurrentlyOpen && !sectionId) {
-                 contentArea.classList.add('closed');
-            }
-        }
-        isSidebarOpen = !contentArea.classList.contains('closed');
+        contentArea.classList.toggle('closed');
     }
-    
-    // PC表示の時だけ状態を保存（スマホでは常に閉じた状態で開始）
+
+    isSidebarOpen = isMobile ? contentArea.classList.contains('open') : !contentArea.classList.contains('closed');
+    birdButton.classList.toggle('open', isSidebarOpen);
+
     if (!isMobile) {
         localStorage.setItem('isSidebarOpen', isSidebarOpen);
     }
 };
 
-
 /**
  * 指定されたセクションを表示し、他のセクションを非表示にします。
- * @param {string} sectionId - 表示するセクションのID。
  */
 window.showSection = async function(sectionId) {
     if (!sectionId) {
@@ -308,30 +264,19 @@ window.showSection = async function(sectionId) {
  * イベントリスナーを設定します。
  */
 function attachEventListeners() {
-    // PC用トグルボタン
     document.getElementById('tcg-menu-toggle-bird').addEventListener('click', () => {
-        window.toggleContentArea(null, false);
+        window.toggleContentArea();
     });
 
-    // スマホ用ハンバーガーメニュー
-    document.getElementById('hamburger-menu-button').addEventListener('click', () => {
-        window.toggleContentArea(null, false);
-    });
-    
-    // スマホ用オーバーレイ（クリックで閉じる）
-    document.getElementById('mobile-overlay').addEventListener('click', () => {
-        window.toggleContentArea(null, false);
-    });
-
-    // 共通のメニューアイコン
     document.querySelectorAll('.tcg-menu-icon').forEach(icon => {
         icon.addEventListener('click', (e) => {
             const sectionId = e.currentTarget.dataset.section;
-            window.toggleContentArea(sectionId, false);
-            // スマホ表示の場合、セクション選択後にメニューを閉じる
+            window.showSection(sectionId);
             if (window.innerWidth <= 768) {
-                document.getElementById('tcg-content-area').classList.remove('open');
-                document.getElementById('mobile-overlay').classList.remove('active');
+                const contentArea = document.getElementById('tcg-content-area');
+                if (contentArea.classList.contains('open')) {
+                    window.toggleContentArea();
+                }
             }
         });
     });
@@ -352,21 +297,25 @@ async function initializeExtensionFeatures() {
     }
 
     const lastSection = localStorage.getItem('activeSection') || 'home';
-    const isSidebarOpen = localStorage.getItem('isSidebarOpen') !== 'false'; // デフォルトはtrue
+    const isSidebarOpenStored = localStorage.getItem('isSidebarOpen') !== 'false';
 
     if (window.innerWidth > 768) {
-        // PC表示の場合のみ、保存された状態を復元
-        if (isSidebarOpen) {
-            window.toggleContentArea(lastSection, true);
+        const contentArea = document.getElementById('tcg-content-area');
+        const birdButton = document.getElementById('tcg-menu-toggle-bird');
+        
+        // PC表示の初期状態を設定
+        if (isSidebarOpenStored) {
+            contentArea.classList.remove('closed');
+            birdButton.classList.add('open');
+            isSidebarOpen = true;
         } else {
-            const contentArea = document.getElementById('tcg-content-area');
             contentArea.classList.add('closed');
-            document.querySelectorAll('.tcg-menu-icon').forEach(icon => {
-                icon.classList.toggle('active', icon.dataset.section === lastSection);
-            });
+            birdButton.classList.remove('open');
+            isSidebarOpen = false;
         }
+        window.showSection(lastSection);
     } else {
-        // スマホ表示の場合は、常に閉じた状態で開始し、ホームを表示
+        // スマホ表示の初期状態を設定
         window.showSection('home');
     }
 }
