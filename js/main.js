@@ -177,14 +177,18 @@ window.toggleContentArea = function() {
     const isMobile = window.innerWidth <= 768;
 
     if (isMobile) {
+        // スマホ: 'open'クラスをトグル
         contentArea.classList.toggle('open');
     } else {
+        // PC: 'closed'クラスをトグル
         contentArea.classList.toggle('closed');
     }
 
+    // 現在の状態を更新
     isSidebarOpen = isMobile ? contentArea.classList.contains('open') : !contentArea.classList.contains('closed');
     birdButton.classList.toggle('open', isSidebarOpen);
 
+    // PC表示の時だけ状態を保存
     if (!isMobile) {
         localStorage.setItem('isSidebarOpen', isSidebarOpen);
     }
@@ -264,14 +268,17 @@ window.showSection = async function(sectionId) {
  * イベントリスナーを設定します。
  */
 function attachEventListeners() {
+    // 桜小鳥ボタン（PC・スマホ共通）
     document.getElementById('tcg-menu-toggle-bird').addEventListener('click', () => {
         window.toggleContentArea();
     });
 
+    // メニューアイコン
     document.querySelectorAll('.tcg-menu-icon').forEach(icon => {
         icon.addEventListener('click', (e) => {
             const sectionId = e.currentTarget.dataset.section;
             window.showSection(sectionId);
+            // スマホ表示の場合、セクション選択時にメニューを閉じる
             if (window.innerWidth <= 768) {
                 const contentArea = document.getElementById('tcg-content-area');
                 if (contentArea.classList.contains('open')) {
@@ -303,7 +310,6 @@ async function initializeExtensionFeatures() {
         const contentArea = document.getElementById('tcg-content-area');
         const birdButton = document.getElementById('tcg-menu-toggle-bird');
         
-        // PC表示の初期状態を設定
         if (isSidebarOpenStored) {
             contentArea.classList.remove('closed');
             birdButton.classList.add('open');
@@ -315,7 +321,6 @@ async function initializeExtensionFeatures() {
         }
         window.showSection(lastSection);
     } else {
-        // スマホ表示の初期状態を設定
         window.showSection('home');
     }
 }
