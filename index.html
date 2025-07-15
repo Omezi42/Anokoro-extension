@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あの頃の自作TCG アシスタント</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <aside class="sidebar">
+            <header class="sidebar-header">
+                <img src="桜小鳥.png" alt="桜小鳥" class="app-icon">
+                <h1>TCGアシスタント</h1>
+            </header>
+            <nav id="main-nav" class="main-nav">
+                <a href="#home" class="nav-link active" data-section="home"><i class="fas fa-home"></i><span>ホーム</span></a>
+                <a href="#rateMatch" class="nav-link" data-section="rateMatch"><i class="fas fa-fist-raised"></i><span>レート戦</span></a>
+                <a href="#battleRecord" class="nav-link" data-section="battleRecord"><i class="fas fa-trophy"></i><span>戦いの記録</span></a>
+                <a href="#search" class="nav-link" data-section="search"><i class="fas fa-search"></i><span>カード検索</span></a>
+                <a href="#memo" class="nav-link" data-section="memo"><i class="fas fa-clipboard"></i><span>メモ</span></a>
+                <a href="#minigames" class="nav-link" data-section="minigames"><i class="fas fa-gamepad"></i><span>ミニゲーム</span></a>
+            </nav>
+        </aside>
+        <main id="content-area" class="content-area">
+            <!-- 各セクションのコンテンツがここに読み込まれます -->
+        </main>
+    </div>
+
+    <!-- カスタムダイアログ用のHTML -->
+    <div id="custom-dialog-overlay">
+        <div class="modal-content">
+            <h3 id="dialog-title"></h3>
+            <p id="dialog-message"></p>
+            <div class="dialog-buttons"></div>
+        </div>
+    </div>
+
+    <!-- カード詳細モーダル用のHTML（JSで動的に生成される） -->
+    
+    <script src="app.js"></script>
+</body>
+</html>

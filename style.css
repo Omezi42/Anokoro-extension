@@ -1,0 +1,165 @@
+/* style.css (Webアプリ版) */
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&display=swap');
+
+:root {
+    --font-family-main: 'M PLUS Rounded 1c', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+    --color-background: #fdfaf4;
+    --color-primary: #3a8c6a;
+    --color-secondary: #f3ae4b;
+    --color-accent: #e87a5a;
+    --color-text-main: #3a3a3a;
+    --color-text-light: #6c6c6c;
+    --color-border: #dcd6c9;
+    --color-white: #ffffff;
+    --color-light-gray: #f4f0e8;
+    --sidebar-width: 240px;
+}
+
+body {
+    font-family: var(--font-family-main);
+    background-color: var(--color-light-gray);
+    color: var(--color-text-main);
+    margin: 0;
+    -webkit-text-size-adjust: 100%;
+}
+
+.page-wrapper {
+    display: flex;
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    height: 100vh;
+    background-color: var(--color-background);
+    border-right: 2px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+.sidebar-header {
+    padding: 20px;
+    text-align: center;
+    border-bottom: 2px dashed var(--color-border);
+}
+
+.app-icon {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--color-border);
+}
+
+.sidebar-header h1 {
+    font-size: 1.5em;
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.main-nav {
+    flex-grow: 1;
+    padding: 20px 0;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    color: var(--color-text-light);
+    text-decoration: none;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    border-left: 5px solid transparent;
+}
+
+.nav-link i {
+    width: 30px;
+    text-align: center;
+    margin-right: 10px;
+    font-size: 1.2em;
+}
+
+.nav-link:hover {
+    background-color: var(--color-light-gray);
+    color: var(--color-primary);
+}
+
+.nav-link.active {
+    background-color: var(--color-light-gray);
+    color: var(--color-primary);
+    border-left-color: var(--color-secondary);
+}
+
+.content-area {
+    margin-left: var(--sidebar-width);
+    padding: 40px;
+    width: calc(100% - var(--sidebar-width) - 80px);
+    overflow-y: auto;
+}
+
+/* --- セクション共通スタイル --- */
+.section-title {
+    font-size: 2em;
+    color: var(--color-primary);
+    border-bottom: 2px dashed var(--color-border);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+/* --- 各セクションのスタイル --- */
+/* (元のstyle.cssから必要な部分をここに統合) */
+/* ... (ボタン、フォーム、モーダルなどのスタイルはここに追加) ... */
+
+/* --- スマートフォン対応 --- */
+@media (max-width: 768px) {
+    .page-wrapper {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+        flex-direction: row;
+        align-items: center;
+        border-right: none;
+        border-bottom: 2px solid var(--color-border);
+    }
+    .sidebar-header {
+        border-bottom: none;
+        padding: 10px;
+    }
+    .app-icon {
+        width: 40px;
+        height: 40px;
+        margin: 0;
+    }
+    .sidebar-header h1 {
+        display: none;
+    }
+    .main-nav {
+        display: flex;
+        flex-grow: 1;
+        justify-content: space-around;
+        padding: 0;
+    }
+    .nav-link {
+        flex-direction: column;
+        padding: 10px 5px;
+        border-left: none;
+        border-bottom: 5px solid transparent;
+    }
+    .nav-link.active {
+        border-bottom-color: var(--color-secondary);
+    }
+    .nav-link i { margin: 0 0 5px 0; }
+    .nav-link span { font-size: 0.7em; }
+    .content-area {
+        margin-left: 0;
+        width: auto;
+        padding: 20px;
+    }
+}
