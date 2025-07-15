@@ -15,8 +15,7 @@
         <!-- サイドバー（メニュー） -->
         <div id="tcg-content-area">
             <div id="tcg-sidebar-header">
-                <!-- ★★★ 追加: スマホ用閉じるボタン ★★★ -->
-                <button id="close-menu-button" class="mobile-only">&times;</button>
+                <!-- スマホ用の閉じるボタンを削除 -->
                 <button class="tcg-menu-icon" data-section="home" title="ホーム"><i class="fas fa-home"></i></button>
                 <button class="tcg-menu-icon" data-section="rateMatch" title="レート戦"><i class="fas fa-fist-raised"></i></button>
                 <button class="tcg-menu-icon" data-section="battleRecord" title="戦いの記録"><i class="fas fa-trophy"></i></button>
@@ -29,20 +28,17 @@
 
         <!-- メインコンテンツ -->
         <div id="main-content-placeholder">
-            <button id="hamburger-menu-button" class="mobile-only">
-                <i class="fas fa-bars"></i>
-            </button>
+            <!-- ハンバーガーメニューを削除 -->
             <h1>『あの頃の自作TCG』</h1>
             <p>（本来のゲーム画面領域）</p>
             <p>このページは拡張機能をwebページとして提供しているものです。<br>webページとしてデバッグしていないので一部動作しないかもしれません。</p>
             <p>実際の拡張機能はfirefoxでインストールしてください。<br>（ただし現在は審査中です。）</p>
-            <p>左のメニューから各機能をお試しください。</p>
-            <div id="tcg-menu-toggle-bird" class="desktop-only" style="background-image: url('images/irust_桜小鳥.png'); position: static; transform: scale(1.5); margin-top: 20px;" title="アシスタントメニューを開く/閉じる"></div>
+            <p>右下のアイコンから各機能をお試しください。</p>
         </div>
     </div>
     
-    <!-- スマホ用オーバーレイは不要になるため削除（メニューが全画面を覆うため） -->
-    <!-- <div id="mobile-overlay" class="mobile-only"></div> -->
+    <!-- ★★★ 桜小鳥のイラストをapp-containerの外に移動 ★★★ -->
+    <div id="tcg-menu-toggle-bird" style="background-image: url('images/irust_桜小鳥.png');" title="アシスタントメニューを開く/閉じる"></div>
 
     <!-- カスタムダイアログ用のHTML -->
     <div id="tcg-custom-dialog-overlay">

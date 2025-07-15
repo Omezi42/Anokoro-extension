@@ -169,50 +169,33 @@ window.showCardDetailModal = function(card, currentIndex, searchResults) {
 /**
  * コンテンツエリア（サイドバー）の表示/非表示を切り替えます。
  */
-window.toggleContentArea = function(sectionId, forceOpen = false) {
+window.toggleContentArea = function() {
     const contentArea = document.getElementById('tcg-content-area');
+    const birdButton = document.getElementById('tcg-menu-toggle-bird');
     if (!contentArea) return;
 
     const isMobile = window.innerWidth <= 768;
 
     if (isMobile) {
-        // --- スマホ用のロジック ---
-        const isCurrentlyOpen = contentArea.classList.contains('open');
-        if (sectionId) {
-            // セクションが指定された場合は、メニューを開いてセクションを表示
-            if (!isCurrentlyOpen) {
-                contentArea.classList.add('open');
-            }
-            window.showSection(sectionId);
-        } else {
-            // セクション指定なし（トグル操作）
-            contentArea.classList.toggle('open');
-        }
-        isSidebarOpen = contentArea.classList.contains('open');
+        // スマホ: 'open'クラスをトグル
+        contentArea.classList.toggle('open');
     } else {
-        // --- PC用のロジック ---
-        const isCurrentlyOpen = !contentArea.classList.contains('closed');
-        const currentActiveSection = document.querySelector('.tcg-menu-icon.active')?.dataset.section;
-        if (forceOpen) {
-            if (!isCurrentlyOpen) contentArea.classList.remove('closed');
-            if(sectionId) window.showSection(sectionId);
-        } else {
-            if (isCurrentlyOpen && currentActiveSection === sectionId) contentArea.classList.add('closed');
-            else if (isCurrentlyOpen && sectionId) window.showSection(sectionId);
-            else if (!isCurrentlyOpen) {
-                contentArea.classList.remove('closed');
-                window.showSection(sectionId || currentActiveSection || 'home');
-            } 
-            else if (isCurrentlyOpen && !sectionId) contentArea.classList.add('closed');
-        }
-        isSidebarOpen = !contentArea.classList.contains('closed');
+        // PC: 'closed'クラスをトグル
+        contentArea.classList.toggle('closed');
+    }
+
+    // 現在の状態を更新
+    isSidebarOpen = isMobile ? contentArea.classList.contains('open') : !contentArea.classList.contains('closed');
+    birdButton.classList.toggle('open', isSidebarOpen);
+
+    // PC表示の時だけ状態を保存
+    if (!isMobile) {
         localStorage.setItem('isSidebarOpen', isSidebarOpen);
     }
 };
 
 /**
  * 指定されたセクションを表示し、他のセクションを非表示にします。
- * @param {string} sectionId - 表示するセクションのID。
  */
 window.showSection = async function(sectionId) {
     if (!sectionId) {
@@ -285,22 +268,12 @@ window.showSection = async function(sectionId) {
  * イベントリスナーを設定します。
  */
 function attachEventListeners() {
-    // PC用トグルボタン
+    // 桜小鳥ボタン（PC・スマホ共通）
     document.getElementById('tcg-menu-toggle-bird').addEventListener('click', () => {
-        window.toggleContentArea(null, false);
+        window.toggleContentArea();
     });
 
-    // スマホ用ハンバーガーメニュー
-    document.getElementById('hamburger-menu-button').addEventListener('click', () => {
-        window.toggleContentArea(null, false);
-    });
-    
-    // スマホ用閉じるボタン
-    document.getElementById('close-menu-button').addEventListener('click', () => {
-        window.toggleContentArea(null, false);
-    });
-
-    // 共通のメニューアイコン
+    // メニューアイコン
     document.querySelectorAll('.tcg-menu-icon').forEach(icon => {
         icon.addEventListener('click', (e) => {
             const sectionId = e.currentTarget.dataset.section;
@@ -308,6 +281,7 @@ function attachEventListeners() {
             // スマホ表示の場合、セクション選択後にメニューを閉じる
             if (window.innerWidth <= 768) {
                 document.getElementById('tcg-content-area').classList.remove('open');
+                document.getElementById('tcg-menu-toggle-bird').classList.remove('open');
             }
         });
     });
@@ -328,21 +302,17 @@ async function initializeExtensionFeatures() {
     }
 
     const lastSection = localStorage.getItem('activeSection') || 'home';
-    const isSidebarOpen = localStorage.getItem('isSidebarOpen') !== 'false'; // デフォルトはtrue
+    const isSidebarOpenStored = localStorage.getItem('isSidebarOpen') !== 'false';
 
     if (window.innerWidth > 768) {
-        // PC表示の場合のみ、保存された状態を復元
-        if (isSidebarOpen) {
-            window.toggleContentArea(lastSection, true);
-        } else {
-            const contentArea = document.getElementById('tcg-content-area');
+        // PC表示
+        const contentArea = document.getElementById('tcg-content-area');
+        if (!isSidebarOpenStored) {
             contentArea.classList.add('closed');
-            document.querySelectorAll('.tcg-menu-icon').forEach(icon => {
-                icon.classList.toggle('active', icon.dataset.section === lastSection);
-            });
         }
+        window.showSection(lastSection);
     } else {
-        // スマホ表示の場合は、常に閉じた状態で開始し、ホームを表示
+        // スマホ表示
         window.showSection('home');
     }
 }

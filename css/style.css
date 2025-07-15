@@ -911,11 +911,6 @@ label {
     --color-text-light: #6c6c6c;
     --color-border: #dcd6c9;
     --color-white: #ffffff;
-    --color-success: #28a745;
-    --color-danger: #dc3545;
-    --color-info: #17a2b8;
-    --color-light-gray: #f4f0e8;
-
     --sidebar-width-desktop: 450px;
     --bird-toggle-size: 80px;
 }
@@ -941,13 +936,12 @@ html, body {
     display: flex; justify-content: space-around; align-items: center;
     padding: 10px; background-color: var(--color-light-gray);
     border-bottom: 2px solid var(--color-border); flex-shrink: 0;
-    position: relative; /* 閉じるボタンの配置基準 */
 }
 
 .tcg-menu-icon {
     background: none; border: none; color: var(--color-text-light); font-size: 24px; padding: 10px;
     cursor: pointer; width: 50px; height: 50px; text-align: center;
-    transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+    transition: background-color 0.2s ease, color 0.2s ease;
     border-radius: 8px; display: flex; justify-content: center; align-items: center; flex-shrink: 0;
 }
 .tcg-menu-icon:hover { background-color: #e9e4d9; color: var(--color-primary); }
@@ -955,15 +949,34 @@ html, body {
 
 #tcg-sections-wrapper { flex-grow: 1; padding: 20px; overflow-y: auto; position: relative; }
 .tcg-section { display: none; animation: fadeIn 0.5s ease; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .tcg-section.active { display: block; }
 
-/* --- メインコンテンツ & トグルボタン --- */
+/* --- メインコンテンツ --- */
 #main-content-placeholder {
     flex-grow: 1; display: flex; justify-content: center; align-items: center; flex-direction: column;
-    background-color: #e9e4d9; text-align: center; padding: 20px; position: relative;
+    background-color: #e9e4d9; text-align: center; padding: 20px;
 }
 #main-content-placeholder h1 { font-size: 2.5em; color: var(--color-primary); }
+
+/* --- 桜小鳥トグルボタン --- */
+#tcg-menu-toggle-bird {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: var(--bird-toggle-size);
+    height: var(--bird-toggle-size);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10020; /* 最前面に表示 */
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+#tcg-menu-toggle-bird:hover { transform: scale(1.1) rotate(5deg); }
+#tcg-menu-toggle-bird.open { transform: scale(0.9) rotate(-10deg); }
 
 /* ★★★★★ スマホ対応 ★★★★★ */
 .mobile-only { display: none; }
@@ -977,7 +990,6 @@ html, body {
 
     #tcg-content-area {
         position: fixed; top: 0;
-        /* ★★★ 変更: 全画面表示にする ★★★ */
         left: -100vw;
         width: 100vw;
         z-index: 10010;
@@ -989,29 +1001,13 @@ html, body {
 
     #main-content-placeholder { width: 100%; box-sizing: border-box; }
 
-    #hamburger-menu-button {
-        position: fixed; top: 15px; left: 15px; z-index: 10005;
-        background-color: rgba(255, 255, 255, 0.8); border: 1px solid var(--color-border);
-        width: 50px; height: 50px; font-size: 24px; color: var(--color-primary);
-        border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-    
-    /* ★★★ 追加: 閉じるボタンのスタイル ★★★ */
-    #close-menu-button {
-        position: absolute;
-        top: 5px;
-        right: 10px;
-        font-size: 36px;
-        font-weight: 300;
-        background: none;
-        border: none;
-        color: var(--color-text-light);
-        padding: 5px 15px;
-        cursor: pointer;
-        z-index: 10011;
-    }
-    #close-menu-button:hover {
-        color: var(--color-primary);
+    /* ハンバーガーメニューと閉じるボタンのスタイルを削除 */
+    #hamburger-menu-button, #close-menu-button { display: none; }
+
+    /* 桜小鳥ボタンのサイズを調整 */
+    #tcg-menu-toggle-bird {
+        width: 65px;
+        height: 65px;
     }
     
     .tcg-card-detail-modal-content { flex-direction: column; max-height: 85vh; }
