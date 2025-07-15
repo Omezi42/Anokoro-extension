@@ -763,7 +763,7 @@ label {
 #logout-button {
     width: 100%;
     background-color: var(--color-danger);
-    color: var(--color-white);
+    color: var(--color-accent);
     margin-top: 15px;
 }
 #logout-button:hover { background-color: #c82333; }
