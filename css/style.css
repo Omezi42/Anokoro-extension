@@ -12,6 +12,9 @@
     --color-text-light: #6c6c6c;
     --color-border: #dcd6c9;
     --color-white: #ffffff;
+    --color-success: #28a745;
+    --color-danger: #dc3545;
+    --color-info: #17a2b8;
     --sidebar-width-desktop: 450px;
     --bird-toggle-size: 80px;
 }
