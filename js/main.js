@@ -276,14 +276,16 @@ function attachEventListeners() {
     // メニューアイコン
     document.querySelectorAll('.tcg-menu-icon').forEach(icon => {
         icon.addEventListener('click', (e) => {
-            const sectionId = e.currentTarget.dataset.section;
-            window.showSection(sectionId);
-            // スマホ表示の場合、セクション選択時にメニューを閉じる
-            if (window.innerWidth <= 768) {
-                const contentArea = document.getElementById('tcg-content-area');
-                if (contentArea.classList.contains('open')) {
-                    window.toggleContentArea();
-                }
+            const clickedIcon = e.currentTarget;
+            const sectionId = clickedIcon.dataset.section;
+            
+            // ★★★ 修正: PCとスマホで挙動を分岐 ★★★
+            if (clickedIcon.classList.contains('active')) {
+                // 現在アクティブなアイコンを再度クリックした場合、メニューの表示/非表示を切り替える
+                window.toggleContentArea();
+            } else {
+                // 別のセクションのアイコンをクリックした場合、セクションを切り替える
+                window.showSection(sectionId);
             }
         });
     });
