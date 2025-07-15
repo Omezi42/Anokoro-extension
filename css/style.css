@@ -444,7 +444,7 @@ label {
     width: 100%;
     padding: 15px;
     font-size: 1.2em;
-    background-color: var(--color-primary);
+    background-color: var(--color-accent);
     color: var(--color-white);
 }
 #matching-button:hover { background-color: #d16a4c; }
