@@ -897,3 +897,123 @@ label {
     #tcg-sections-wrapper { padding: 15px; }
     .battle-record-tab-button { font-size: 0.8em; padding: 10px 5px; }
 }
+/* css/style.css */
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&display=swap');
+
+/* --- 基本設定 --- */
+:root {
+    --font-family-main: 'M PLUS Rounded 1c', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+    --color-background: #fdfaf4;
+    --color-primary: #3a8c6a;
+    --color-secondary: #f3ae4b;
+    --color-accent: #e87a5a;
+    --color-text-main: #3a3a3a;
+    --color-text-light: #6c6c6c;
+    --color-border: #dcd6c9;
+    --color-white: #ffffff;
+    --color-success: #28a745;
+    --color-danger: #dc3545;
+    --color-info: #17a2b8;
+    --color-light-gray: #f4f0e8;
+
+    --sidebar-width-desktop: 450px;
+    --bird-toggle-size: 80px;
+}
+
+html, body {
+    margin: 0; padding: 0; height: 100%;
+    overflow-x: hidden; font-family: var(--font-family-main);
+}
+
+#app-container { display: flex; height: 100vh; }
+
+/* --- サイドバー --- */
+#tcg-content-area {
+    position: relative; width: var(--sidebar-width-desktop); height: 100vh;
+    background-color: var(--color-background); color: var(--color-text-main);
+    display: flex; flex-direction: column; flex-shrink: 0;
+    transition: margin-left 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+    border-right: 2px solid var(--color-border); box-sizing: border-box;
+}
+#tcg-content-area.closed { margin-left: calc(-1 * var(--sidebar-width-desktop)); }
+
+#tcg-sidebar-header {
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 10px; background-color: var(--color-light-gray);
+    border-bottom: 2px solid var(--color-border); flex-shrink: 0;
+    position: relative; /* 閉じるボタンの配置基準 */
+}
+
+.tcg-menu-icon {
+    background: none; border: none; color: var(--color-text-light); font-size: 24px; padding: 10px;
+    cursor: pointer; width: 50px; height: 50px; text-align: center;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+    border-radius: 8px; display: flex; justify-content: center; align-items: center; flex-shrink: 0;
+}
+.tcg-menu-icon:hover { background-color: #e9e4d9; color: var(--color-primary); }
+.tcg-menu-icon.active { background-color: var(--color-primary); color: var(--color-white); }
+
+#tcg-sections-wrapper { flex-grow: 1; padding: 20px; overflow-y: auto; position: relative; }
+.tcg-section { display: none; animation: fadeIn 0.5s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.tcg-section.active { display: block; }
+
+/* --- メインコンテンツ & トグルボタン --- */
+#main-content-placeholder {
+    flex-grow: 1; display: flex; justify-content: center; align-items: center; flex-direction: column;
+    background-color: #e9e4d9; text-align: center; padding: 20px; position: relative;
+}
+#main-content-placeholder h1 { font-size: 2.5em; color: var(--color-primary); }
+
+/* ★★★★★ スマホ対応 ★★★★★ */
+.mobile-only { display: none; }
+.desktop-only { display: block; }
+
+@media (max-width: 768px) {
+    .mobile-only { display: block; }
+    .desktop-only { display: none; }
+
+    #app-container { display: block; position: relative; }
+
+    #tcg-content-area {
+        position: fixed; top: 0;
+        /* ★★★ 変更: 全画面表示にする ★★★ */
+        left: -100vw;
+        width: 100vw;
+        z-index: 10010;
+        transition: left 0.3s ease-in-out;
+        box-shadow: 5px 0 15px rgba(0,0,0,0.2);
+        border-right: none;
+    }
+    #tcg-content-area.open { left: 0; }
+
+    #main-content-placeholder { width: 100%; box-sizing: border-box; }
+
+    #hamburger-menu-button {
+        position: fixed; top: 15px; left: 15px; z-index: 10005;
+        background-color: rgba(255, 255, 255, 0.8); border: 1px solid var(--color-border);
+        width: 50px; height: 50px; font-size: 24px; color: var(--color-primary);
+        border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    
+    /* ★★★ 追加: 閉じるボタンのスタイル ★★★ */
+    #close-menu-button {
+        position: absolute;
+        top: 5px;
+        right: 10px;
+        font-size: 36px;
+        font-weight: 300;
+        background: none;
+        border: none;
+        color: var(--color-text-light);
+        padding: 5px 15px;
+        cursor: pointer;
+        z-index: 10011;
+    }
+    #close-menu-button:hover {
+        color: var(--color-primary);
+    }
+    
+    .tcg-card-detail-modal-content { flex-direction: column; max-height: 85vh; }
+    .card-preview-pane { max-width: 180px; margin: 0 auto; }
+}
