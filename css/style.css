@@ -441,7 +441,7 @@ label {
     width: 100%;
     padding: 15px;
     font-size: 1.2em;
-    background-color: var(--color-accent);
+    background-color: var(--color-primary);
     color: var(--color-white);
 }
 #matching-button:hover { background-color: #d16a4c; }
@@ -763,7 +763,7 @@ label {
 #logout-button {
     width: 100%;
     background-color: var(--color-danger);
-    color: var(--color-accent);
+    color: var(--color-white);
     margin-top: 15px;
 }
 #logout-button:hover { background-color: #c82333; }
