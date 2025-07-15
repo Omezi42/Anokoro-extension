@@ -2,12 +2,7 @@
 
 // グローバルなallCardsとshowCustomDialog関数を受け取るための初期化関数
 window.initRateMatchSection = async function() {
-    console.log("RateMatch section initialized.");
-
-    // Firefox互換性のためのbrowserオブジェクトのフォールバック (main.jsにもありますが、念のためここでも)
-    if (typeof browser === 'undefined') {
-        var browser = chrome;
-    }
+    console.log("RateMatch section initialized for web version.");
 
     // === レート戦セクションのロジック ===
     // 各要素を関数内で取得
@@ -20,14 +15,12 @@ window.initRateMatchSection = async function() {
     const rankingList = document.getElementById('ranking-list');
     const refreshRankingButton = document.getElementById('refresh-ranking-button');
 
-    // [NEW] Username edit elements
     const usernameContainer = document.getElementById('username-container');
     const editUsernameButton = document.getElementById('edit-username-button');
     const editUsernameForm = document.getElementById('edit-username-form');
     const newUsernameInput = document.getElementById('new-username-input');
     const saveUsernameButton = document.getElementById('save-username-button');
     const cancelEditUsernameButton = document.getElementById('cancel-edit-username-button');
-
 
     const chatInput = document.getElementById('chat-input');
     const sendChatButton = document.getElementById('send-chat-button');
@@ -41,7 +34,6 @@ window.initRateMatchSection = async function() {
     const rateDisplay = document.getElementById('rate-display');
     const usernameDisplay = document.getElementById('username-display');
 
-    // --- 新しい認証UI要素 ---
     const authSection = document.getElementById('auth-section');
     const loggedInUi = document.getElementById('logged-in-ui');
     const registerUsernameInput = document.getElementById('register-username');
@@ -51,15 +43,11 @@ window.initRateMatchSection = async function() {
     const loginPasswordInput = document.getElementById('login-password');
     const loginButton = document.getElementById('login-button');
     const logoutButton = document.getElementById('logout-button');
-    // --- End 新しい認証UI要素 ---
 
-    // --- 新しい対戦相手情報UI要素 ---
     const opponentUsernameDisplay = document.getElementById('opponent-username-display');
     const webrtcConnectionStatus = document.getElementById('webrtc-connection-status');
-    // --- End 新しい対戦相手情報UI要素 ---
 
-
-    // グローバルなログイン状態変数 (main.jsからアクセスされる)
+    // グローバルなログイン状態変数
     window.currentRate = window.currentRate || 1500;
     window.currentUsername = window.currentUsername || null;
     window.currentUserId = window.currentUserId || null;
@@ -69,9 +57,7 @@ window.initRateMatchSection = async function() {
     window.userRegisteredDecks = window.userRegisteredDecks || [];
     window.ws = window.ws || null;
 
-    // 現在のマッチIDを保持 (結果報告用)
     let currentMatchId = null;
-
 
     // --- WebSocket & WebRTC Variables ---
     const RENDER_WS_URL = 'wss://anokoro-tcg-api.onrender.com';
@@ -89,7 +75,6 @@ window.initRateMatchSection = async function() {
             { urls: 'stun:stun1.l.google.com:19302' },
         ]
     };
-    // --- End WebSocket & WebRTC Variables ---
 
     // UIの表示状態を更新する関数
     const updateUIState = () => {
@@ -99,27 +84,21 @@ window.initRateMatchSection = async function() {
             if (loggedInUi) loggedInUi.style.display = 'block';
             if (usernameDisplay) usernameDisplay.textContent = window.currentUsername;
 
-            // マッチングUIの表示
-            if (currentMatchId) { // マッチング成立後 (currentMatchIdがある場合)
+            if (currentMatchId) {
                  if (preMatchUiDiv) preMatchUiDiv.style.display = 'none';
                  if (matchingStatusDiv) matchingStatusDiv.style.display = 'none';
                  if (postMatchUiDiv) postMatchUiDiv.style.display = 'block';
-                 
                  if (opponentUsernameDisplay) opponentUsernameDisplay.textContent = opponentUsername || '不明';
-
                  if (chatMessagesDiv && chatMessagesDiv.dataset.initialized !== 'true') {
-                     chatMessagesDiv.innerHTML = `
-                         <p><strong>[システム]:</strong> 対戦が始まりました！</p>
-                         <p><strong>[システム]:</strong> WebRTC接続を確立中...</p>
-                     `;
+                     chatMessagesDiv.innerHTML = `<p><strong>[システム]:</strong> 対戦が始まりました！</p><p><strong>[システム]:</strong> WebRTC接続を確立中...</p>`;
                      chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
                      chatMessagesDiv.dataset.initialized = 'true';
                  }
-            } else if (matchingStatusDiv && matchingStatusDiv.style.display === 'flex') { // マッチング待機中
+            } else if (matchingStatusDiv && matchingStatusDiv.style.display === 'flex') {
                 if (preMatchUiDiv) preMatchUiDiv.style.display = 'none';
                 if (postMatchUiDiv) postMatchUiDiv.style.display = 'none';
             }
-            else { // マッチング前 (デフォルト状態)
+            else {
                 if (preMatchUiDiv) preMatchUiDiv.style.display = 'block';
                 if (matchingStatusDiv) matchingStatusDiv.style.display = 'none';
                 if (postMatchUiDiv) postMatchUiDiv.style.display = 'none';
@@ -153,7 +132,8 @@ window.initRateMatchSection = async function() {
             if (history.length === 0) {
                 matchHistoryList.innerHTML = '<li>まだ対戦履歴がありません。</li>';
             } else {
-                history.forEach(record => {
+                // 新しいものが上に来るように逆順で表示
+                [...history].reverse().forEach(record => {
                     const listItem = document.createElement('li');
                     listItem.textContent = record;
                     matchHistoryList.appendChild(listItem);
@@ -182,7 +162,6 @@ window.initRateMatchSection = async function() {
         }
         rankingData.forEach((user, index) => {
             const listItem = document.createElement('li');
-            // [FIX] Highlight current user in ranking
             if (user.username === window.currentUsername) {
                 listItem.classList.add('current-user');
             }
@@ -207,25 +186,25 @@ window.initRateMatchSection = async function() {
     // --- WebSocket Connection Setup ---
     const connectWebSocket = () => {
         if (window.ws && (window.ws.readyState === WebSocket.OPEN || window.ws.readyState === WebSocket.CONNECTING)) {
-            console.log("WebSocket already open or connecting (global instance).");
+            console.log("WebSocket already open or connecting.");
             return;
         }
         window.ws = new WebSocket(RENDER_WS_URL);
 
         window.ws.onopen = () => {
             console.log("WebSocket connected to server.");
-            const result = JSON.parse(localStorage.getItem('loggedInCredentials')) || {};
-                if (result.loggedInUserId && result.loggedInUsername) {
-                    window.ws.send(JSON.stringify({
-                        type: 'auto_login',
-                        userId: result.loggedInUserId,
-                        username: result.loggedInUsername
-                    }));
-                    console.log("Attempting auto-login with cached credentials.");
-                } else {
-                    updateUIState();
-                }
-            };
+            const loggedInUserId = localStorage.getItem('loggedInUserId');
+            const loggedInUsername = localStorage.getItem('loggedInUsername');
+            if (loggedInUserId && loggedInUsername) {
+                window.ws.send(JSON.stringify({
+                    type: 'auto_login',
+                    userId: loggedInUserId,
+                    username: loggedInUsername
+                }));
+                console.log("Attempting auto-login with cached credentials from localStorage.");
+            } else {
+                updateUIState();
+            }
         };
 
         window.ws.onmessage = async (event) => {
@@ -241,7 +220,6 @@ window.initRateMatchSection = async function() {
                     handleAuthMessages(message);
                     break;
                 case 'queue_status':
-                    console.log("Queue status:", message.message);
                     const statusText = document.getElementById('matching-status-text');
                     if(statusText) statusText.textContent = message.message;
                     break;
@@ -250,7 +228,6 @@ window.initRateMatchSection = async function() {
                     opponentUsername = message.opponentUsername;
                     currentMatchId = message.matchId;
                     isWebRTCOfferInitiator = message.isInitiator;
-                    console.log(`Match found! Opponent: ${opponentPlayerId} (${opponentUsername}), Initiator: ${isWebRTCOfferInitiator}, MatchId: ${currentMatchId}`);
                     await window.showCustomDialog('対戦相手決定', `対戦相手が見つかりました！対戦を開始しましょう！`);
                     updateUIState();
                     await setupPeerConnection();
@@ -260,7 +237,6 @@ window.initRateMatchSection = async function() {
                     break;
                 case 'update_user_data_response':
                     if (message.success) {
-                        console.log("User data updated on server.");
                         window.currentRate = message.userData.rate;
                         window.userMatchHistory = message.userData.matchHistory;
                         window.userMemos = message.userData.memos;
@@ -269,8 +245,6 @@ window.initRateMatchSection = async function() {
                         updateRateDisplay();
                         loadMatchHistory();
                         document.dispatchEvent(new CustomEvent('loginStateChanged'));
-                    } else {
-                        console.error("Failed to update user data on server:", message.message);
                     }
                     break;
                 case 'report_result_response':
@@ -291,21 +265,16 @@ window.initRateMatchSection = async function() {
                 case 'ranking_data':
                     if (message.success) {
                         displayRanking(message.data);
-                    } else {
-                        console.error("Failed to fetch ranking:", message.message);
-                        if(rankingList) rankingList.innerHTML = `<li>${message.message}</li>`;
                     }
                     break;
-                // [NEW] Handle username change response
                 case 'change_username_response':
                     await window.showCustomDialog('ユーザー名変更', message.message);
                     if (message.success) {
                         window.currentUsername = message.newUsername;
-                        localStorage.setItem('loggedInCredentials', JSON.stringify({ loggedInUserId: window.currentUserId, loggedInUsername: window.currentUsername }));
+                        localStorage.setItem('loggedInUsername', window.currentUsername);
                         updateUIState();
-                        requestRanking(); // Refresh ranking to show new name
+                        requestRanking();
                     }
-                    // Hide form regardless of success/failure
                     if(usernameContainer) usernameContainer.style.display = 'flex';
                     if(editUsernameForm) editUsernameForm.style.display = 'none';
                     break;
@@ -325,10 +294,12 @@ window.initRateMatchSection = async function() {
 
         window.ws.onerror = (error) => {
             console.error("WebSocket error:", error);
-            window.showCustomDialog('エラー', 'マッチングサーバーへの接続に失敗しました。サーバーが起動しているか確認してください。');
+            window.showCustomDialog(
+                'サーバー接続エラー', 
+                'マッチングサーバーへの接続に失敗しました。<br>レート戦機能は現在利用できない可能性があります。<br>（デモページではバックエンドが停止している場合があります）'
+            );
         };
     };
-    // --- End WebSocket Connection Setup ---
 
     // --- Auth Message Handler ---
     const handleAuthMessages = async (message) => {
@@ -337,7 +308,7 @@ window.initRateMatchSection = async function() {
                 if (message.success) {
                     await window.showCustomDialog('登録成功', message.message);
                     if (registerUsernameInput) registerUsernameInput.value = '';
-                   if (registerPasswordInput) registerPasswordInput.value = '';
+                    if (registerPasswordInput) registerPasswordInput.value = '';
                 } else {
                     await window.showCustomDialog('登録失敗', message.message);
                 }
@@ -355,11 +326,13 @@ window.initRateMatchSection = async function() {
                     if (message.type === 'login_response') {
                         await window.showCustomDialog('ログイン成功', message.message);
                     }
-                    localStorage.setItem('loggedInCredentials', JSON.stringify({ loggedInUserId: window.currentUserId, loggedInUsername: window.currentUsername }));
+                    localStorage.setItem('loggedInUserId', window.currentUserId);
+                    localStorage.setItem('loggedInUsername', window.currentUsername);
                     requestRanking();
                 } else {
                     await window.showCustomDialog('ログイン失敗', message.message);
-                    localStorage.removeItem('loggedInCredentials');
+                    localStorage.removeItem('loggedInUserId');
+                    localStorage.removeItem('loggedInUsername');
                 }
                 updateUIState();
                 break;
@@ -373,7 +346,8 @@ window.initRateMatchSection = async function() {
                 window.userBattleRecords = [];
                 window.userRegisteredDecks = [];
                 await window.showCustomDialog(message.type === 'logout_response' ? 'ログアウト完了' : '切断されました', message.message);
-                localStorage.removeItem('loggedInCredentials');
+                localStorage.removeItem('loggedInUserId');
+                localStorage.removeItem('loggedInUsername');
                 clearMatchAndP2PConnection();
                 updateUIState();
                 break;
@@ -512,9 +486,7 @@ window.initRateMatchSection = async function() {
             window.ws.send(JSON.stringify({ type: 'clear_match_info' }));
         }
     };
-    // --- End WebRTC Handlers ---
-
-
+    
     // --- Event Listeners Setup ---
     const addEventListeners = () => {
         if (registerButton) registerButton.addEventListener('click', handleRegisterButtonClick);
@@ -538,8 +510,7 @@ window.initRateMatchSection = async function() {
         if (saveUsernameButton) saveUsernameButton.addEventListener('click', handleSaveUsernameClick);
         if (cancelEditUsernameButton) cancelEditUsernameButton.addEventListener('click', handleCancelEditUsernameClick);
     };
-    // --- End Event Listeners Setup ---
-
+    
     // --- Event Handlers ---
     async function handleRegisterButtonClick() {
         const username = registerUsernameInput ? registerUsernameInput.value.trim() : '';
@@ -618,7 +589,6 @@ window.initRateMatchSection = async function() {
         }
     }
 
-    // [NEW] Username change handlers
     function handleEditUsernameClick() {
         if(usernameContainer) usernameContainer.style.display = 'none';
         if(editUsernameForm) editUsernameForm.style.display = 'flex';
@@ -634,7 +604,7 @@ window.initRateMatchSection = async function() {
     async function handleSaveUsernameClick() {
         const newUsername = newUsernameInput ? newUsernameInput.value.trim() : '';
         if (!newUsername || newUsername === window.currentUsername) {
-            handleCancelEditUsernameClick(); // No change, just cancel
+            handleCancelEditUsernameClick();
             return;
         }
         if (window.ws && window.ws.readyState === WebSocket.OPEN) {
@@ -646,7 +616,6 @@ window.initRateMatchSection = async function() {
             await window.showCustomDialog('エラー', 'サーバーに接続していません。');
         }
     }
-
 
     async function handleSendChatButtonClick() {
         if (!chatInput || !dataChannel || dataChannel.readyState !== 'open') {
@@ -690,12 +659,10 @@ window.initRateMatchSection = async function() {
         }));
         await window.showCustomDialog('報告送信', '対戦結果をサーバーに報告しました。相手の報告を待っています。');
     }
-    // --- End Event Handlers ---
 
-    // --- Initial Load ---
+    // --- 初期化処理 ---
     addEventListeners();
     connectWebSocket();
     updateUIState();
     requestRanking();
-    // --- End Initial Load ---
-void 0; // Explicitly return undefined for Firefox compatibility
+};

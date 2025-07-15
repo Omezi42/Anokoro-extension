@@ -3,42 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>あの頃の自作TCG アシスタント</title>
-    <link rel="stylesheet" href="style.css">
+    <title>あの頃の自作TCG 拡張機能体験ページ</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* ページ全体を適用対象にするための微調整 */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden; /* スクロールをJSで制御するため */
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+        }
+        #app-container {
+            display: flex;
+            height: 100vh;
+        }
+        #tcg-content-area {
+            position: relative;
+            width: var(--sidebar-width);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            right: 0 !important; /* 拡張機能のスライドアニメーションを無効化 */
+            flex-shrink: 0;
+            transition: margin-left 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+            border-right: 2px solid var(--color-border);
+        }
+        #tcg-content-area.closed {
+            margin-left: calc(-1 * var(--sidebar-width));
+        }
+        #main-content-placeholder {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            background-color: #e9e4d9;
+            text-align: center;
+            padding: 20px;
+        }
+        #main-content-placeholder h1 {
+            font-size: 2.5em;
+            color: var(--color-primary);
+        }
+    </style>
 </head>
 <body>
-    <div class="page-wrapper">
-        <aside class="sidebar">
-            <header class="sidebar-header">
-                <img src="桜小鳥.png" alt="桜小鳥" class="app-icon">
-                <h1>TCGアシスタント</h1>
-            </header>
-            <nav id="main-nav" class="main-nav">
-                <a href="#home" class="nav-link active" data-section="home"><i class="fas fa-home"></i><span>ホーム</span></a>
-                <a href="#rateMatch" class="nav-link" data-section="rateMatch"><i class="fas fa-fist-raised"></i><span>レート戦</span></a>
-                <a href="#battleRecord" class="nav-link" data-section="battleRecord"><i class="fas fa-trophy"></i><span>戦いの記録</span></a>
-                <a href="#search" class="nav-link" data-section="search"><i class="fas fa-search"></i><span>カード検索</span></a>
-                <a href="#memo" class="nav-link" data-section="memo"><i class="fas fa-clipboard"></i><span>メモ</span></a>
-                <a href="#minigames" class="nav-link" data-section="minigames"><i class="fas fa-gamepad"></i><span>ミニゲーム</span></a>
-            </nav>
-        </aside>
-        <main id="content-area" class="content-area">
-            <!-- 各セクションのコンテンツがここに読み込まれます -->
-        </main>
-    </div>
 
-    <!-- カスタムダイアログ用のHTML -->
-    <div id="custom-dialog-overlay">
-        <div class="modal-content">
-            <h3 id="dialog-title"></h3>
-            <p id="dialog-message"></p>
-            <div class="dialog-buttons"></div>
+    <div id="app-container">
+        <div id="tcg-content-area">
+            <div id="tcg-sidebar-header">
+                <button class="tcg-menu-icon" data-section="home" title="ホーム"><i class="fas fa-home"></i></button>
+                <button class="tcg-menu-icon" data-section="rateMatch" title="レート戦"><i class="fas fa-fist-raised"></i></button>
+                <button class="tcg-menu-icon" data-section="battleRecord" title="戦いの記録"><i class="fas fa-trophy"></i></button>
+                <button class="tcg-menu-icon" data-section="memo" title="メモ"><i class="fas fa-clipboard"></i></button>
+                <button class="tcg-menu-icon" data-section="search" title="検索"><i class="fas fa-search"></i></button>
+                <button class="tcg-menu-icon" data-section="minigames" title="ミニゲーム"><i class="fas fa-gamepad"></i></button>
+            </div>
+            <div id="tcg-sections-wrapper"></div>
+        </div>
+
+        <div id="main-content-placeholder">
+            <h1>『あの頃の自作TCG』</h1>
+            <p>（本来のゲーム画面領域）</p>
+            <p>左のメニューから各機能をお試しください。</p>
+            <div id="tcg-menu-toggle-bird" style="background-image: url('images/irust_桜小鳥.png'); position: static; transform: scale(1.5); margin-top: 20px;" title="アシスタントメニューを開く/閉じる"></div>
+        </div>
+    </div>
+    
+    <div id="tcg-custom-dialog-overlay">
+        <div class="tcg-modal-content">
+            <h3 id="tcg-dialog-title"></h3>
+            <p id="tcg-dialog-message"></p>
+            <div class="dialog-buttons" id="tcg-dialog-buttons"></div>
         </div>
     </div>
 
-    <!-- カード詳細モーダル用のHTML（JSで動的に生成される） -->
-    
-    <script src="app.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>あの頃の自作TCG拡張機能</title>
+    <link rel="stylesheet" href="../css/popup.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="popup-container">
+        <header class="popup-header">
+            <img src="../images/irust_桜小鳥.png" alt="桜小鳥アイコン" class="header-icon">
+            <h1>あの頃の自作TCG拡張機能</h1>
+        </header>
+
+        <div class="main-action">
+            <button id="go-to-game-button" class="go-to-game-button">
+                <i class="fas fa-play-circle"></i>
+                <span>ゲームへ</span>
+            </button>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-item">
+                <span class="info-label"><i class="fas fa-star"></i> あなたのレート</span>
+                <span id="rate-display" class="info-value">----</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label"><i class="fas fa-users"></i> マッチング待機中</span>
+                <span id="matching-count-display" class="info-value">--人</span>
+            </div>
+        </div>
+
+        <nav class="popup-nav">
+            <button class="popup-button" data-section="home">
+                <i class="fas fa-home icon"></i>
+                <span>ホーム</span>
+            </button>
+            <button class="popup-button" data-section="rateMatch">
+                <i class="fas fa-fist-raised icon"></i>
+                <span>レート戦</span>
+            </button>
+            <button class="popup-button" data-section="battleRecord">
+                <i class="fas fa-trophy icon"></i>
+                <span>戦いの記録</span>
+            </button>
+            <button class="popup-button" data-section="search">
+                <i class="fas fa-search icon"></i>
+                <span>カード検索</span>
+            </button>
+        </nav>
+        <footer class="popup-footer">
+            <button id="options-button" class="options-link">
+                <i class="fas fa-cog"></i> 設定
+            </button>
+        </footer>
+    </div>
+    <script src="../js/popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<h2 class="section-title">レート戦</h2>
+<div class="rate-match-info">
+    <div class="info-box">
+        <h3>現在のレート</h3>
+        <p id="rate-display">1500</p>
+    </div>
+    <div class="info-box">
+        <h3>あなたのユーザー名</h3>
+        <div id="username-container">
+            <p id="username-display">未ログイン</p>
+            <button id="edit-username-button" title="ユーザー名を変更"><i class="fas fa-edit"></i></button>
+        </div>
+        <div id="edit-username-form" style="display: none;">
+            <input type="text" id="new-username-input">
+            <button id="save-username-button">保存</button>
+            <button id="cancel-edit-username-button">キャンセル</button>
+        </div>
+    </div>
+</div>
+
+<!-- アカウント認証セクション -->
+<div id="auth-section">
+    <h3>アカウント登録 / ログイン</h3>
+    <div class="auth-form">
+        <h4>アカウント登録</h4>
+        <input type="text" id="register-username" placeholder="ユーザー名" required>
+        <input type="password" id="register-password" placeholder="パスワード" required>
+        <button id="register-button">登録</button>
+    </div>
+    <div class="auth-form">
+        <h4>ログイン</h4>
+        <input type="text" id="login-username" placeholder="ユーザー名" required>
+        <input type="password" id="login-password" placeholder="パスワード" required>
+        <button id="login-button">ログイン</button>
+    </div>
+</div>
+
+<!-- ログイン後のUI要素 -->
+<div id="logged-in-ui" style="display: none;">
+    <!-- マッチング前のUI要素 -->
+    <div id="pre-match-ui">
+        <button id="matching-button">オンラインマッチング</button>
+        <button id="logout-button">ログアウト</button>
+        
+        <div id="ranking-section">
+            <div class="ranking-header">
+                <h3>ランキング</h3>
+                <button id="refresh-ranking-button" title="ランキングを更新"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <ol id="ranking-list">
+                <li>ランキングを読み込み中...</li>
+            </ol>
+        </div>
+
+        <h3>対戦履歴</h3>
+        <ul id="match-history-list">
+            <li>ログインすると対戦履歴が表示されます。</li>
+        </ul>
+    </div>
+
+    <!-- マッチング中の表示 -->
+    <div id="matching-status" style="display: none;">
+        <p id="matching-status-text">対戦相手を検索中...</p>
+        <div class="spinner"></div>
+        <button id="cancel-matching-button-in-status">マッチングキャンセル</button>
+    </div>
+
+    <!-- 対戦中（マッチング後）のUI要素 -->
+    <div id="post-match-ui" style="display: none;">
+        <h4>対戦相手情報</h4>
+        <div class="info-box opponent-info-box">
+            <p>相手プレイヤー: <span id="opponent-username-display"></span></p>
+            <p>接続状態: <span id="webrtc-connection-status">接続中...</span></p>
+        </div>
+
+        <h4>チャット</h4>
+        <div id="chat-messages" style="height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; background-color: #f9f9f9; border-radius: 8px;">
+            <p><strong>[システム]:</strong> 対戦が始まりました！</p>
+            <p><strong>[システム]:</strong> WebRTC接続を確立中...</p>
+        </div>
+        <div class="chat-fixed-phrases">
+            <button class="chat-phrase-button">よろしくお願いします！</button>
+            <button class="chat-phrase-button">先攻を選択します。</button>
+            <button class="chat-phrase-button">後攻を選択します。</button>
+            <button class="chat-phrase-button">対戦ありがとうございました！</button>
+        </div>
+        <div style="display: flex; gap: 5px;">
+            <input type="text" id="chat-input" placeholder="メッセージを入力..." style="flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+            <button id="send-chat-button" style="background-color: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">送信</button>
+        </div>
+        <h4>対戦結果報告</h4>
+        <div class="rate-match-actions">
+            <button id="win-button" class="win"><i class="fas fa-check-circle"></i> 勝利</button>
+            <button id="lose-button" class="lose"><i class="fas fa-times-circle"></i> 敗北</button>
+            <button id="cancel-button"><i class="fas fa-stop-circle"></i> 対戦中止</button>
+        </div>
+    </div>
+</div>
