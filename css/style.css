@@ -845,3 +845,387 @@ label {
     .tcg-card-detail-modal-content { flex-direction: column; max-height: 85vh; }
     .card-preview-pane { max-width: 180px; margin: 0 auto; }
 }
+.replay-item-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.replay-item-actions button {
+    padding: 5px 10px;
+    font-size: 0.9em;
+}
+
+.play-replay-button {
+    background-color: var(--color-success);
+    color: var(--color-white);
+}
+.play-replay-button:hover {
+    background-color: #218838;
+}
+.delete-replay-button {
+    background-color: var(--color-danger);
+    color: var(--color-white);
+}
+.delete-replay-button:hover {
+    background-color: #c82333;
+}
+
+/* --- 観戦機能のスタイル --- */
+.spectate-box {
+    margin-bottom: 25px;
+    padding-bottom: 25px;
+    border-bottom: 1px dashed var(--color-border);
+}
+.spectate-box:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+#broadcast-room-id {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-border);
+    font-weight: bold;
+    text-align: center;
+    cursor: text;
+}
+#spectate-form {
+    display: flex;
+    gap: 10px;
+}
+#spectate-form input {
+    flex-grow: 1;
+    margin: 0;
+}
+#spectate-video {
+    width: 100%;
+    background-color: #000;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.spectate-notice {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #fffbe6;
+    border: 1px solid #ffe58f;
+    border-radius: 8px;
+    font-size: 0.9em;
+}
+.spectate-notice p {
+    color: #856404;
+    margin: 0;
+}
+
+/* 認証フォーム */
+#auth-section {
+    background-color: var(--color-light-gray);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+}
+.auth-form {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+.auth-form h4 { color: var(--color-primary); margin-top: 0; }
+.auth-form button { width: 100%; background-color: var(--color-primary); color: var(--color-white); }
+.auth-form button:hover { background-color: #317a5e; }
+
+#logout-button {
+    width: 100%;
+    background-color: var(--color-danger);
+    color: var(--color-white);
+    margin-top: 15px;
+}
+#logout-button:hover { background-color: #c82333; }
+
+/* ランキング */
+#ranking-section {
+    background-color: var(--color-light-gray);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+}
+#ranking-list li {
+    display: flex;
+    align-items: center;
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--color-border);
+    background: none;
+    box-shadow: none;
+}
+#ranking-list li:hover { background-color: #e9e4d9; }
+#ranking-list li.current-user {
+    background-color: #e9f7ef;
+    border-left: 4px solid var(--color-success);
+    font-weight: 700;
+}
+#ranking-list .rank {
+    font-weight: bold;
+    color: var(--color-text-light);
+    min-width: 30px;
+    text-align: right;
+    margin-right: 15px;
+}
+#ranking-list .username {
+    flex-grow: 1;
+}
+#ranking-list .rate {
+    font-weight: bold;
+    color: var(--color-primary);
+}
+#refresh-ranking-button {
+    background: none;
+    border: none;
+    color: var(--color-text-light);
+    font-size: 1.2em;
+    cursor: pointer;
+}
+#refresh-ranking-button:hover { color: var(--color-primary); }
+
+
+/* --- リプレイ機能のスタイル --- */
+.replay-section {
+    background-color: var(--color-light-gray);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 10px;
+}
+
+#replay-controls {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px dashed var(--color-border);
+}
+
+#replay-controls .button-style {
+    margin-right: 10px;
+}
+
+#start-replay-record-button {
+    background-color: var(--color-danger);
+    color: var(--color-white);
+}
+#start-replay-record-button:hover {
+    background-color: #c82333;
+}
+
+#stop-replay-record-button {
+    background-color: var(--color-text-light);
+    color: var(--color-white);
+}
+#stop-replay-record-button:hover {
+    background-color: #5a6268;
+}
+
+#record-status {
+    margin-top: 15px;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+#record-status.record-status-idle { color: var(--color-text-light); }
+#record-status.record-status-recording { color: var(--color-danger); }
+#record-status.record-status-processing { color: var(--color-info); }
+
+#replay-player-wrapper {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: var(--color-white);
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+}
+
+#replay-video {
+    width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    background-color: #000;
+    margin-bottom: 10px;
+}
+
+#close-replay-player-button {
+    width: 100%;
+    background-color: var(--color-text-light);
+    color: var(--color-white);
+}
+
+#replay-list-wrapper {
+    margin-top: 20px;
+}
+
+#replays-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.replay-item-info {
+    flex-grow: 1;
+}
+
+.replay-item-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.replay-item-actions button {
+    padding: 5px 10px;
+    font-size: 0.9em;
+}
+
+.play-replay-button {
+    background-color: var(--color-success);
+    color: var(--color-white);
+}
+.play-replay-button:hover {
+    background-color: #218838;
+}
+.delete-replay-button {
+    background-color: var(--color-danger);
+    color: var(--color-white);
+}
+.delete-replay-button:hover {
+    background-color: #c82333;
+}
+
+/* --- 観戦機能のスタイル --- */
+.spectate-box {
+    margin-bottom: 25px;
+    padding-bottom: 25px;
+    border-bottom: 1px dashed var(--color-border);
+}
+.spectate-box:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+#broadcast-room-id {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-border);
+    font-weight: bold;
+    text-align: center;
+    cursor: text;
+}
+#spectate-form {
+    display: flex;
+    gap: 10px;
+}
+#spectate-form input {
+    flex-grow: 1;
+    margin: 0;
+}
+#spectate-video {
+    width: 100%;
+    background-color: #000;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.spectate-notice {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #fffbe6;
+    border: 1px solid #ffe58f;
+    border-radius: 8px;
+    font-size: 0.9em;
+}
+.spectate-notice p {
+    color: #856404;
+    margin: 0;
+}
+
+
+/* レスポンシブ対応 */
+@media (max-width: 480px) {
+    :root {
+        --sidebar-width: 95vw;
+        --bird-toggle-size: 65px;
+    }
+    .section-title { font-size: 1.8em; }
+    h3 { font-size: 1.2em; }
+    #tcg-sections-wrapper { padding: 15px; }
+    .battle-record-tab-button { font-size: 0.8em; padding: 10px 5px; }
+}
+/* --- 観戦機能リストの追加スタイル --- */
+.broadcast-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.broadcast-list-header h5 {
+    margin: 0;
+    font-size: 1.1em;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#refresh-broadcast-list-button {
+    padding: 8px;
+    font-size: 1em;
+    background-color: var(--color-white);
+    color: var(--color-primary);
+    border: 1px solid var(--color-border);
+}
+
+#refresh-broadcast-list-button:hover {
+    background-color: var(--color-light-gray);
+}
+
+#broadcast-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border-top: 1px solid var(--color-border);
+    padding-top: 10px;
+}
+
+.broadcast-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    transition: background-color 0.2s ease;
+}
+
+.broadcast-list-item:hover {
+    background-color: #e9e4d9;
+}
+
+.broadcast-item-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1em;
+}
+
+.broadcast-item-info .fa-user-circle {
+    color: var(--color-primary);
+    font-size: 1.2em;
+}
+
+.start-spectate-button-in-list {
+    background-color: var(--color-success);
+    color: var(--color-white);
+    font-size: 0.9em;
+    padding: 8px 12px;
+}
+.start-spectate-button-in-list:hover {
+    background-color: #218838;
+}
+
+#broadcast-room-id-display {
+    background-color: var(--color-white);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    font-family: monospace;
+}
