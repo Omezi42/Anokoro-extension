@@ -213,18 +213,19 @@ window.initRateMatchSection = async function() {
         window.ws = new WebSocket(RENDER_WS_URL);
 
         window.ws.onopen = () => {
-            const loggedInUserId = localStorage.getItem('loggedInUserId');
-            const loggedInUsername = localStorage.getItem('loggedInUsername');
-            if (loggedInUserId && loggedInUsername) {
-                window.ws.send(JSON.stringify({
-                    type: 'auto_login',
-                    userId: loggedInUserId,
-                    username: loggedInUsername
-                }));
-                console.log("Attempting auto-login with cached credentials from localStorage.");
-            } else {
-                updateUIState();
-            }
+            console.log("WebSocket connected to server.");
+            browser.storage.local.get(['loggedInUserId', 'loggedInUsername'], (result) => {
+                if (result.loggedInUserId && result.loggedInUsername) {
+                    window.ws.send(JSON.stringify({
+                        type: 'auto_login',
+                        userId: result.loggedInUserId,
+                        username: result.loggedInUsername
+                    }));
+                    console.log("Attempting auto-login with cached credentials.");
+                } else {
+                    updateUIState();
+                }
+            });
         };
 
         window.ws.onmessage = async (event) => {
@@ -300,7 +301,7 @@ window.initRateMatchSection = async function() {
                     await window.showCustomDialog('ユーザー名変更', message.message);
                     if (message.success) {
                         window.currentUsername = message.newUsername;
-                        localStorage.setItem('loggedInUsername', window.currentUsername);
+                        browser.storage.local.set({ loggedInUsername: window.currentUsername });
                         updateUIState();
                         requestRanking(); // Refresh ranking to show new name
                     }
@@ -354,13 +355,11 @@ window.initRateMatchSection = async function() {
                     if (message.type === 'login_response') {
                         await window.showCustomDialog('ログイン成功', message.message);
                     }
-                    localStorage.setItem('loggedInUserId', window.currentUserId);
-                    localStorage.setItem('loggedInUsername', window.currentUsername);
+                    browser.storage.local.set({ loggedInUserId: window.currentUserId, loggedInUsername: window.currentUsername });
                     requestRanking();
                 } else {
                     await window.showCustomDialog('ログイン失敗', message.message);
-                    localStorage.removeItem('loggedInUserId');
-                    localStorage.removeItem('loggedInUsername');
+                    browser.storage.local.remove(['loggedInUserId', 'loggedInUsername']);
                 }
                 updateUIState();
                 break;
@@ -374,8 +373,7 @@ window.initRateMatchSection = async function() {
                 window.userBattleRecords = [];
                 window.userRegisteredDecks = [];
                 await window.showCustomDialog(message.type === 'logout_response' ? 'ログアウト完了' : '切断されました', message.message);
-                localStorage.removeItem('loggedInUserId');
-                localStorage.removeItem('loggedInUsername');
+                browser.storage.local.remove(['loggedInUserId', 'loggedInUsername']);
                 clearMatchAndP2PConnection();
                 updateUIState();
                 break;
