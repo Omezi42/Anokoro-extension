@@ -312,6 +312,24 @@ window.initRateMatchSection = async function() {
                 case 'error':
                     await window.showCustomDialog('エラー', message.message);
                     break;
+                // --- 観戦機能関連の新しいcase ---
+                case 'broadcast_started':
+                    if (window.handleBroadcastStarted) {
+                        window.handleBroadcastStarted(message);
+                    }
+                    break;
+                
+                case 'spectate_signal':
+                    if (window.handleSpectateSignal) {
+                        window.handleSpectateSignal(message);
+                    }
+                    break;
+
+                case 'broadcast_stopped':
+                    if (window.handleBroadcastStopped) {
+                        window.handleBroadcastStopped(message);
+                    }
+                    break;
                 default:
                     console.warn("Unknown message type from server:", message.type);
             }
