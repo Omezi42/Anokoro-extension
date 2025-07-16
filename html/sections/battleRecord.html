@@ -1,5 +1,5 @@
 <h2 class="section-title">戦いの記録</h2>
-<p>対戦記録とデッキの勝率を管理できます。</p>
+<p>対戦記録とデッキの勝率を管理できます。リプレイ録画も可能です。</p>
 
 <div class="battle-record-tabs">
     <button class="battle-record-tab-button active" data-tab="new-record"><i class="fas fa-plus-circle"></i> 新しい対戦記録</button>
@@ -9,7 +9,20 @@
 </div>
 
 <div id="battle-record-tab-new-record" class="battle-record-tab-content active">
-    <div class="battle-record-form">
+    <div class="replay-recording-section">
+        <h4><i class="fas fa-video"></i> リプレイ録画</h4>
+        <p>現在のゲーム画面を録画して、対戦記録と一緒に保存します。</p>
+        <button id="start-replay-button"><i class="fas fa-play-circle"></i> 録画を開始</button>
+        <button id="stop-replay-button" style="display: none;"><i class="fas fa-stop-circle"></i> 録画を停止して保存</button>
+        <p id="recording-status" class="recording-status" style="display: none;">
+            <span class="recording-indicator"></span> 録画中...
+        </p>
+    </div>
+
+    <div id="battle-record-form-wrapper" class="battle-record-form">
+        <h4><i class="fas fa-edit"></i> 対戦内容の入力</h4>
+        <p id="replay-link-status" style="display:none; font-weight: bold; color: var(--color-success);"></p>
+        
         <label for="my-deck-select">自分のデッキ名:</label>
         <select id="my-deck-select">
             <option value="">登録済みデッキから選択</option>
@@ -73,27 +86,16 @@
         <p>後攻勝率: <span id="second-win-rate">0.00%</span></p>
 
         <h4>自分のデッキタイプ別勝率</h4>
-        <div id="my-deck-type-win-rates">
-            <!-- 自分のデッキタイプ別勝率がここに表示されます -->
-        </div>
+        <div id="my-deck-type-win-rates"></div>
         <h4>相手のデッキタイプ別勝率</h4>
-        <div id="opponent-deck-type-win-rates">
-            <!-- 相手のデッキタイプ別勝率がここに表示されます -->
-        </div>
+        <div id="opponent-deck-type-win-rates"></div>
         
         <h4><i class="fas fa-dice-d20"></i> デッキ別詳細分析</h4>
         <label for="selected-deck-for-stats">デッキを選択:</label>
         <select id="selected-deck-for-stats">
             <option value="">全てのデッキ</option>
         </select>
-        <div id="selected-deck-stats-detail">
-            <!-- 選択されたデッキの詳細な勝率がここに表示されます -->
-        </div>
-
-        <!-- 勝率グラフのプレースホルダーを削除 -->
-        <!-- <div class="chart-placeholder">
-            <img src="https://placehold.co/350x200/cccccc/333333?text=Win+Rate+Chart" alt="勝率グラフのプレースホルダー">
-        </div> -->
+        <div id="selected-deck-stats-detail"></div>
     </div>
 </div>
 
