@@ -50,6 +50,34 @@ html { /* bodyではなくhtmlにフォントファミリーを適用 */
     font-family: var(--font-family-main);
 }
 
+body {
+    /* メインコンテンツを中央寄せにするための設定 */
+    display: flex;
+    flex-direction: column; /* 縦方向に要素を並べる */
+    align-items: center;   /* 水平方向の中央寄せ */
+    justify-content: flex-start; /* 垂直方向は上揃え */
+    min-height: 100vh;     /* 少なくともビューポートの高さにする */
+    margin: 0;             /* デフォルトマージンをリセット */
+    padding: 20px;         /* 上下のパディング */
+    box-sizing: border-box;
+    overflow-x: hidden; /* 横方向のスクロールを無効にする */
+    position: relative; /* サイドバーがactiveになった時に overflow: hidden; を適用するため */
+}
+
+/* サイドバーが開いたときに背景のスクロールを無効にする */
+body.sidebar-open {
+    overflow: hidden; /* サイドバーが開いたらメインコンテンツのスクロールを禁止 */
+}
+
+#main-content-wrapper { /* index.htmlに新しく追加するdivのクラス名 */
+    text-align: center;
+    margin-top: 20px;
+    max-width: 960px; /* 例: コンテンツの最大幅を設定 */
+    width: 100%;
+    /* サイドバーが開いたときの右パディング調整は、メインコンテンツの配置ロジックから削除 */
+    /* サイドバーはposition:fixedで独立して動くため、paddingで調整しない */
+}
+
 /* --- 桜小鳥ボタンコンテナ --- */
 #tcg-bird-container {
     position: fixed;
@@ -99,7 +127,6 @@ html { /* bodyではなくhtmlにフォントファミリーを適用 */
 #tcg-bird-speech-bubble {
     position: absolute;
     bottom: calc(var(--bird-toggle-size) + 10px);
-    right: 0;
     width: 250px;
     padding: 15px;
     background-color: var(--color-white); /* テーマによって切り替わる */
@@ -121,15 +148,37 @@ html { /* bodyではなくhtmlにフォントファミリーを適用 */
     pointer-events: none;
 }
 
+/* 吹き出しの三角の向きを調整 */
 #tcg-bird-speech-bubble::after {
     content: '';
     position: absolute;
-    bottom: -12px;
-    right: 30px;
-    border-width: 12px 12px 0 0;
+    bottom: -12px; /* 吹き出しの下に配置 */
     border-style: solid;
-    border-color: var(--color-primary) transparent transparent transparent; /* テーマによって切り替わる */
+    border-width: 12px 12px 0 0; /* デフォルトは右下に出るように */
+    border-color: var(--color-primary) transparent transparent transparent;
 }
+
+#tcg-bird-speech-bubble.align-right {
+    right: 0; /* 鳥の右側に合わせて吹き出しを配置 */
+    left: auto;
+}
+#tcg-bird-speech-bubble.align-right::after {
+    right: 30px; /* 右寄せ時の三角の位置 */
+    left: auto;
+    border-width: 12px 12px 0 0;
+}
+
+#tcg-bird-speech-bubble.align-left {
+    left: 0; /* 鳥の左側に合わせて吹き出しを配置 */
+    right: auto;
+}
+#tcg-bird-speech-bubble.align-left::after {
+    left: 30px; /* 左寄せ時の三角の位置 */
+    right: auto;
+    border-width: 12px 0 0 12px; /* 左下に出るように */
+}
+
+
 #tcg-bird-speech-bubble small {
     display: block;
     text-align: right;
@@ -266,6 +315,9 @@ body.theme-dark .tcg-menu-icon:hover {
     color: var(--color-text-light); /* テーマによって切り替わる */
     margin-bottom: 15px;
     line-height: 1.7;
+    word-wrap: break-word; /* テキストの折り返し */
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 #tcg-content-area ul, #tcg-content-area ol,
@@ -1383,73 +1435,85 @@ body.theme-dark #tcg-content-area .start-broadcast-button-in-list:hover { backgr
     font-family: monospace;
 }
 
+/* PCビュー (デフォルト) */
+/* サイドバーの幅とメインコンテンツの調整 */
+/* body の padding-right は、サイドバーが固定されるPCビューでのみ有効 */
+body:not(.sidebar-open) { /* サイドバーが閉じた状態では通常のpadding */
+    padding-right: 20px;
+}
+
+/* サイドバーが開いた状態のbodyのパディングを調整 */
+/* これによりメインコンテンツがサイドバーと重なるのを防ぐ */
+body.active:not(.sidebar-open) { /* PCビューでサイドバーが開いているとき */
+    padding-right: calc(var(--sidebar-width) + 20px); /* サイドバーの幅 + 20pxの余白 */
+}
+
+
 /* レスポンシブ対応 */
-@media (max-width: 480px) {
+@media (max-width: 768px) { /* タブレット・スマホ向けのブレイクポイント */
     :root {
-        --sidebar-width: 95vw;
+        --sidebar-width: 100vw; /* スマホではサイドバーが画面全体を覆う */
         --bird-toggle-size: 65px;
     }
+
+    /* サイドバーが全画面を覆うように調整 */
+    #tcg-content-area {
+        width: 100vw; /* ビューポート幅いっぱいに */
+        left: 100vw; /* 初期位置を画面外左側に変更 */
+        right: auto; /* rightプロパティを無効化 */
+        transition: left 0.4s cubic-bezier(0.4, 0.0, 0.2, 1); /* leftプロパティでのトランジション */
+        border-left: none; /* スマホでは不要 */
+    }
+
+    #tcg-content-area.active {
+        left: 0; /* サイドバーが開いたら画面左端に */
+        right: auto; /* rightプロパティを無効化 */
+    }
+
+    /* メインコンテンツのパディングをリセット（サイドバーが全画面のため） */
+    body {
+        padding-right: 20px; /* 全体的な左右パディング */
+    }
+    body.sidebar-open { /* サイドバーが開いたらbodyのスクロールを無効 */
+        overflow: hidden;
+    }
+
+    #main-content-wrapper {
+        padding-right: 0; /* スマホビューでは右パディングを無効化 */
+        max-width: 100%; /* スマホビューでは最大幅をビューポート幅に合わせる */
+    }
+
+    #tcg-bird-speech-bubble {
+        width: 200px; /* スマホ向けに少し小さく */
+        font-size: 0.8em;
+    }
+    /* 吹き出しの三角の位置調整 */
+    #tcg-bird-speech-bubble.align-right::after {
+        right: 20px; /* 位置を調整 */
+    }
+    #tcg-bird-speech-bubble.align-left::after {
+        left: 20px; /* 位置を調整 */
+    }
+
+
+    /* その他のスマホ向け調整 */
     #tcg-content-area .section-title { font-size: 1.8em; }
     #tcg-content-area h3 { font-size: 1.2em; }
     #tcg-content-area #tcg-sections-wrapper { padding: 15px; }
     #tcg-content-area .battle-record-tab-button { font-size: 0.8em; padding: 10px 5px; }
 }
-/* css/style.css に追加 */
 
-body {
-    /* 中央寄せにするための設定 */
-    display: flex;
-    flex-direction: column; /* 縦方向に要素を並べる */
-    align-items: center;   /* 水平方向の中央寄せ */
-    justify-content: flex-start; /* 垂直方向は上揃え */
-    min-height: 100vh;     /* 少なくともビューポートの高さにする */
-    margin: 0;             /* デフォルトマージンをリセット */
-    padding: 20px;         /* 上下のパディング */
-    box-sizing: border-box;
-
-    /* サイドバーによって狭められた領域を考慮 */
-    /* サイドバーが active の時に動的にbodyのright paddingを変更するなど */
-    /* または、サイドバーと重ならないように最大幅を設定 */
-    max-width: calc(100vw - var(--sidebar-width)); /* ビューポート幅からサイドバーの幅を引いたものを最大幅とする */
-    /* 画面中央に配置 */
-    margin-left: auto;
-    margin-right: auto;
-}
-
-/* タイトルとボタンを囲むdivにスタイルを適用する場合 */
-.main-content-wrapper { /* index.htmlに新しく追加するdivのクラス名 */
-    text-align: center;
-    margin-top: 20px;
-    /* 必要に応じて最大幅を設定 */
-    max-width: 800px; /* 例: ページの最大幅 */
-    width: 100%;
-}
-/* css/style.css に追加 */
-
-#main-content-wrapper {
-    margin-left: auto; /* 左マージンを自動で設定 */
-    margin-right: auto; /* 右マージンを自動で設定 */
-    max-width: 960px; /* 例えば、コンテンツの最大幅を設定 */
-    padding: 20px; /* 内側の余白 */
-    box-sizing: border-box; /* パディングを幅に含める */
-
-    /* サイドバーが開いている場合にメインコンテンツの幅を制限する */
-    /* これはJavaScriptで制御することも可能ですが、CSSで直接行う場合の例 */
-    /* サイドバーの幅は --sidebar-width で定義されています */
-    /* サイドバーが開くと body に active クラスが付く場合などを想定 */
-    transition: padding-right 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-/* サイドバーが開いたときにメインコンテンツの右パディングを調整 */
-/* body.active は、サイドバーが開いたときにbodyタグにactiveクラスがつく場合を想定 */
-body.active #main-content-wrapper {
-    padding-right: calc(var(--sidebar-width) + 20px); /* サイドバーの幅 + 少し余白 */
-    max-width: calc(100vw - var(--sidebar-width) - 40px); /* ビューポートの幅からサイドバーと両側の余白を引く */
-}
-
-/* text-align: center; は、タイトルやボタンを含む div に適用されているので、
-   #main-content-wrapper には必要ないかもしれません。
-   もし、#main-content-wrapper の直下にテキストが続く場合は必要です。 */
-#main-content-wrapper > div {
-    text-align: center; /* スクリーンショットの見た目と合わせる */
+@media (max-width: 480px) { /* さらに小さなスマホ向け */
+    :root {
+        --bird-toggle-size: 55px;
+    }
+    #tcg-menu-toggle-bird {
+        right: 10px;
+        bottom: 10px;
+    }
+    #tcg-bird-speech-bubble {
+        width: 180px;
+        font-size: 0.75em;
+        bottom: calc(var(--bird-toggle-size) + 5px);
+    }
 }

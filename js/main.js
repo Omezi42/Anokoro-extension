@@ -35,14 +35,9 @@
                     canvas.height = img.naturalHeight;
                     ctx.drawImage(img, 0, 0);
                     try {
-                        // CORSエラーを避けるため、画像をCanvasに描画しData URLとして取得を試みる
-                        // ただし、外部ドメインの画像はCORSポリシーに違反する可能性があるため、
-                        // 可能な限り画像をGitHub Pagesと同じドメインに配置することが推奨されます。
                         resolve(canvas.toDataURL());
                     } catch (e) {
                         console.error(`Failed to convert image to Data URL: ${url}`, e);
-                        // CORSエラーなどでData URLに変換できない場合、元のURLをそのまま返す
-                        // これにより、imgタグのsrcには設定できるが、Canvasでの操作は制限される可能性がある
                         resolve(url);
                     }
                 };
@@ -51,25 +46,13 @@
                     reject(new Error(`Failed to load image: ${url}`));
                 };
                 img.src = url;
-                img.crossOrigin = "Anonymous"; // CORS対応のため
+                img.crossOrigin = "Anonymous";
             });
         }
     };
 
     // --- 共通関数の定義 ---
-
-    // CSSの動的読み込みはindex.htmlに移行したため削除
-    const injectResources = () => {
-        // const fontAwesomeLink = document.createElement('link');
-        // fontAwesomeLink.rel = 'stylesheet';
-        // fontAwesomeLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css';
-        // document.head.appendChild(fontAwesomeLink);
-
-        // const googleFontsLink = document.createElement('link');
-        // googleFontsLink.rel = 'stylesheet';
-        // googleFontsLink.href = 'https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&display=swap';
-        // document.head.appendChild(googleFontsLink);
-    };
+    const injectResources = () => { /* CSSが直接リンクされるため内容は空 */ };
 
     window.showCustomDialog = (title, message, isConfirm = false) => {
         return new Promise((resolve) => {
@@ -95,14 +78,11 @@
         });
     };
 
-    // カード詳細モーダル表示
     window.showCardDetailModal = async (card, currentIndex, searchResults) => {
         if (!card) return;
-
         const existingModal = document.getElementById('tcg-card-detail-modal-overlay');
         if (existingModal) existingModal.remove();
 
-        // 日本語のカード名を使用して画像パスを構築
         const cardImageUrl = await window.tcgAssistant.fetchImage(`https://omezi42.github.io/tcg-assistant-images/cards/${encodeURIComponent(card.name)}.png`) || 'https://placehold.co/200x280/eee/333?text=No+Image';
 
         const getInfo = (prefix) => card.info.find(i => i.startsWith(prefix))?.replace(prefix, '').replace('です。', '') || 'N/A';
@@ -185,24 +165,19 @@
 
         const loadAndInit = async () => {
             try {
-                // `js/sections/` または `html/sections/` からファイルを読み込む
-                // main.jsがjs/ディレクトリ直下にあると仮定し、相対パスを調整
                 const modulePath = `./sections/${sectionId}.js`;
-                // options.htmlなど、特殊なHTMLは直接HTMLファイルとしてロードする
                 const htmlPath = `./html/sections/${sectionId}.html`;
 
                 const htmlResponse = await fetch(htmlPath);
                 if (!htmlResponse.ok) throw new Error(`HTML fetch failed: ${htmlResponse.statusText}`);
                 targetSection.innerHTML = await htmlResponse.text();
 
-                // 対応するJavaScriptモジュールがあれば読み込む
                 try {
                     const sectionModule = await import(modulePath);
                     if (sectionModule && typeof sectionModule.initialize === 'function') {
                         sectionModule.initialize();
                     }
                 } catch (moduleError) {
-                    // 全てのセクションにJSファイルがあるとは限らないため、404はエラーとしない
                     if (moduleError instanceof TypeError && moduleError.message.includes('Failed to fetch dynamically imported module')) {
                         console.warn(`No JS module found for section: ${sectionId}. This might be intended.`);
                     } else {
@@ -219,8 +194,6 @@
         if (targetSection.innerHTML.trim() === '') {
             await loadAndInit();
         } else {
-            // 既にHTMLがロードされている場合でも、JSの初期化は再度実行する（例: 検索やリストの再描画）
-            // ただし、モジュールは一度しかimportされないため、その中のinitialize関数を再呼び出し
             const modulePath = `./sections/${sectionId}.js`;
             try {
                 const sectionModule = await import(modulePath);
@@ -243,17 +216,22 @@
         const contentArea = document.getElementById('tcg-content-area');
         const birdToggle = document.getElementById('tcg-menu-toggle-bird');
         if (!contentArea || !birdToggle) return;
+        
         const shouldOpen = forceOpen || !window.tcgAssistant.isSidebarOpen;
         window.tcgAssistant.isSidebarOpen = shouldOpen;
+        
         contentArea.classList.toggle('active', shouldOpen);
         birdToggle.classList.toggle('open', shouldOpen);
+        
+        // bodyにsidebar-openクラスを付与/削除して背景スクロールを制御
+        document.body.classList.toggle('sidebar-open', shouldOpen);
+
         localStorage.setItem('isSidebarOpen', shouldOpen.toString());
         if (shouldOpen) {
             window.showSection(sectionId || window.tcgAssistant.activeSection);
         }
     };
 
-    // テーマを適用する関数
     window.applyTheme = (themeName) => {
         document.body.classList.remove('theme-default', 'theme-dark');
         document.body.classList.add(`theme-${themeName}`);
@@ -262,8 +240,6 @@
 
     const injectUI = async () => {
         if (window.tcgAssistant.uiInjected) return;
-
-        // UIのルート要素をdocument.bodyから#tcg-extension-rootに変更
         const uiRoot = document.getElementById('tcg-extension-root') || document.body;
 
         const birdImageUrl = './images/illust_桜小鳥.png';
@@ -276,7 +252,8 @@
                     <button class="tcg-menu-icon" data-section="memo" title="メモ"><i class="fas fa-clipboard"></i></button>
                     <button class="tcg-menu-icon" data-section="search" title="検索"><i class="fas fa-search"></i></button>
                     <button class="tcg-menu-icon" data-section="minigames" title="ミニゲーム"><i class="fas fa-gamepad"></i></button>
-                    <button class="tcg-menu-icon" data-section="options" title="設定"><i class="fas fa-cog"></i></button> </div>
+                    <button class="tcg-menu-icon" data-section="options" title="設定"><i class="fas fa-cog"></i></button>
+                </div>
                 <div id="tcg-sections-wrapper"></div>
             </div>
             <div id="tcg-bird-container">
@@ -290,7 +267,7 @@
                     <div class="dialog-buttons" id="tcg-dialog-buttons"></div>
                 </div>
             </div>`;
-        uiRoot.insertAdjacentHTML('beforeend', uiHtml); // bodyではなくuiRootに挿入
+        uiRoot.insertAdjacentHTML('beforeend', uiHtml);
         window.tcgAssistant.uiInjected = true;
         attachEventListeners();
         await initializeFeatures();
@@ -324,13 +301,11 @@
                 let newX = e.clientX - offsetX;
                 let newY = e.clientY - offsetY;
 
-                // 画面の境界内に留めるように修正
                 newX = Math.max(0, Math.min(newX, window.innerWidth - birdContainer.offsetWidth));
                 newY = Math.max(0, Math.min(newY, window.innerHeight - birdContainer.offsetHeight));
 
                 birdContainer.style.left = `${newX}px`;
                 birdContainer.style.top = `${newY}px`;
-                // ドラッグ中はrightとbottomをクリアしてleftとtopで位置を制御する
                 birdContainer.style.right = 'auto';
                 birdContainer.style.bottom = 'auto';
             }
@@ -340,12 +315,10 @@
             if (isDragging) {
                 isDragging = false;
                 birdToggle.classList.remove('is-dragging');
-                // ドロップ時の位置をローカルストレージに保存
                 localStorage.setItem('birdPosition', JSON.stringify({ top: birdContainer.style.top, left: birdContainer.style.left }));
             }
         });
 
-        // クリックとダブルクリックの競合を避けるためのロジック
         birdToggle.addEventListener('click', (e) => {
             if (wasDragged) {
                 e.stopPropagation();
@@ -355,12 +328,10 @@
 
             if (clickTimer === null) {
                 clickTimer = setTimeout(() => {
-                    // シングルクリックの処理
                     window.toggleSidebar();
                     clickTimer = null;
                 }, DBLCLICK_DELAY);
             } else {
-                // ダブルクリックの処理
                 clearTimeout(clickTimer);
                 clickTimer = null;
                 showRandomChatter();
@@ -379,11 +350,7 @@
             });
         });
 
-        // options.html からの postMessage をリッスン
         window.addEventListener('message', (event) => {
-            // セキュリティのため、event.origin を検証することを強く推奨
-            // if (event.origin !== "想定されるoptions.htmlのオリジン") return;
-
             if (event.data && event.data.type === 'SHOW_SECTION') {
                 window.showSection(event.data.section, event.data.forceOpenSidebar);
             } else if (event.data && event.data.type === 'APPLY_THEME') {
@@ -397,21 +364,13 @@
         if (!bubble) return;
         const container = document.getElementById('tcg-bird-container');
         const containerRect = container.getBoundingClientRect();
-        // 画面の左右どちらに鳥がいるかで吹き出しの表示を調整
-        bubble.classList.toggle('align-left', containerRect.left + (containerRect.width / 2) < window.innerWidth / 2);
-        bubble.classList.toggle('align-right', containerRect.left + (containerRect.width / 2) >= window.innerWidth / 2);
-
-        // CSSで吹き出しの三角の位置を調整するためのクラスをトグル
-        // style.css に以下を追加する必要がある:
-        // .tcg-bird-speech-bubble.align-left::after { right: auto; left: 30px; border-width: 12px 0 0 12px; border-color: var(--color-primary) transparent transparent transparent; }
-        // .tcg-bird-speech-bubble.align-right::after { left: auto; right: 30px; border-width: 12px 12px 0 0; border-color: var(--color-primary) transparent transparent transparent; }
+        
         bubble.classList.remove('align-left', 'align-right'); // 毎回リセットしてから適用
         if (containerRect.left + (containerRect.width / 2) < window.innerWidth / 2) {
             bubble.classList.add('align-left');
         } else {
             bubble.classList.add('align-right');
         }
-
 
         bubble.innerHTML = html;
         bubble.classList.remove('hidden');
@@ -471,6 +430,9 @@
         } else {
             // デフォルト位置 (CSSで指定されているrightとbottomが適用される)
         }
+        // 初期ロード時にsidebar-openクラスを適用しないように修正
+        // body.classList.toggle('sidebar-open', isSidebarOpen); // ここは削除またはコメントアウト
+        
         if (isSidebarOpen) {
             window.toggleSidebar(null, true);
         } else {
@@ -479,7 +441,6 @@
         setInterval(showRandomChatter, 90000);
     };
 
-    // UIの注入と初期化はDOMContentLoadedまたはready後に実行
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', injectUI);
     } else {
