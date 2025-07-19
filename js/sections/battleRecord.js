@@ -1,557 +1,646 @@
 // js/sections/battleRecord.js
+export function initialize() {
+    // showBattleRecordTab 関数を、initializeスコープの先頭で関数宣言として定義
+    // これにより、initialize関数内のどこからでもアクセス可能になる（巻き上げ）
+    function showBattleRecordTab(tabId) {
+        elements.sectionContainer?.querySelectorAll('.battle-record-tab-content').forEach(c => c.classList.remove('active'));
+        elements.sectionContainer?.querySelectorAll('.battle-record-tab-button').forEach(b => b.classList.remove('active'));
+        const targetContent = getElement(`battle-record-tab-${tabId}`);
+        const targetButton = elements.sectionContainer?.querySelector(`.battle-record-tab-button[data-tab="${tabId}"]`);
+        if (targetContent) targetContent.classList.add('active');
+        if (targetButton) targetButton.classList.add('active');
 
-(function() {
-    // このセクションが初期化済みかどうかを追跡するフラグ
-    let isInitialized = false;
-
-    // 初期化関数をグローバルに公開
-    window.initBattleRecordSection = function() {
-        // 既に初期化済みの場合は何もしない
-        if (isInitialized) {
-            return;
+        // タブが切り替わった際に、各タブのデータをロード
+        switch(tabId) {
+            case 'replay': updateReplayList(); break;
+            case 'deck-management': case 'new-record': loadRegisteredDecks(); break;
+            case 'past-records': case 'stats-summary': loadBattleRecords(); break;
+            case 'minigame-record': displayMinigameStats(); break;
         }
+    }
 
-        // --- グローバル変数 (このスコープ内) ---
-        let mediaRecorder;
-        let recordedChunks = [];
-        let replayStream;
-        let db;
-        let broadcastStream;
-        let peerConnection;
-        let spectateConnection;
-        let currentRoomId = null;
 
-        // --- IndexedDB関連の定数 ---
-        const DB_NAME = 'TcgReplayDB';
-        const DB_VERSION = 1;
-        const META_STORE_NAME = 'replaysMeta';
-        const CHUNKS_STORE_NAME = 'replayChunks';
-        const RTC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
+    if (document.body.dataset.battleRecordInitialized === 'true') {
+        const activeTab = document.querySelector('.battle-record-tab-button.active')?.dataset.tab || 'new-record'; // 初期表示を「新規記録」タブに変更
+        showBattleRecordTab(activeTab);
+        return;
+    }
+    document.body.dataset.battleRecordInitialized = 'true';
 
-        // --- DOM要素の取得 ---
-        const sectionContainer = document.getElementById('tcg-battlerecord-section');
-        if (!sectionContainer) {
-            console.error("BattleRecord section container (#tcg-battlerecord-section) not found!");
-            return;
-        }
+    console.log("BattleRecord section initialized with all features.");
 
-        // =================================================================
-        // データ管理 (ログイン状態を考慮)
-        // =================================================================
-        const getDecks = async () => window.currentUserId ? (window.userRegisteredDecks || []) : JSON.parse(localStorage.getItem('registeredDecksLocal') || '[]');
-        const saveDecks = async (decks) => {
-            if (window.currentUserId) {
-                // TODO: Implement server-side save for window.userRegisteredDecks
-                window.userRegisteredDecks = decks;
-            } else {
-                localStorage.setItem('registeredDecksLocal', JSON.stringify(decks));
+    // const a = (typeof browser !== "undefined") ? browser : chrome; // 削除: Web Extension APIの名前空間はWebページでは不要
+
+    const state = {
+        mediaRecorder: null,
+        recordedChunks: [],
+        replayStream: null,
+        db: null,
+    };
+
+    const DB_NAME = 'TcgReplayDB';
+    const DB_VERSION = 1;
+    const META_STORE_NAME = 'replaysMeta';
+    const CHUNKS_STORE_NAME = 'replayChunks';
+
+    const getElement = (id) => document.getElementById(id);
+    const elements = {
+        sectionContainer: document.querySelector('#tcg-battleRecord-section') || document.body,
+        startRecordBtn: getElement('start-replay-record-button'),
+        stopRecordBtn: getElement('stop-replay-record-button'),
+        recordStatus: getElement('record-status'),
+        replaysList: getElement('replays-list'),
+        replayPlayerWrapper: getElement('replay-player-wrapper'),
+        replayVideo: getElement('replay-video'),
+        closeReplayPlayerBtn: getElement('close-replay-player-button'),
+        newDeckNameInput: getElement('new-deck-name'),
+        newDeckTypeSelect: getElement('new-deck-type'),
+        registerDeckBtn: getElement('register-deck-button'),
+        registeredDecksList: getElement('registered-decks-list'),
+        myDeckSelect: getElement('my-deck-select'),
+        opponentDeckSelect: getElement('opponent-deck-select'),
+        winLossSelect: getElement('win-loss-select'),
+        firstSecondSelect: getElement('first-second-select'),
+        notesTextarea: getElement('notes-textarea'),
+        saveRecordBtn: getElement('save-battle-record-button'),
+        battleRecordsList: getElement('battle-records-list'),
+        statsContainer: getElement('battle-stats'),
+        totalGames: getElement('total-games'),
+        totalWins: getElement('total-wins'),
+        totalLosses: getElement('total-losses'),
+        winRate: getElement('win-rate'),
+        firstWinRate: getElement('first-win-rate'), // 統計要素がHTMLに存在することを想定
+        secondWinRate: getElement('second-win-rate'), // 統計要素がHTMLに存在することを想定
+        minigameStatsContainer: getElement('minigame-stats-container'),
+    };
+
+    // IndexedDBを開く/初期化する関数
+    const openDB = () => new Promise((resolve, reject) => {
+        console.log("Attempting to open IndexedDB (fresh attempt)...");
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onerror = (e) => {
+            const errorMessage = "IndexedDB open error: " + e.target.error.message;
+            console.error(errorMessage);
+            reject(errorMessage);
+        };
+        request.onupgradeneeded = (e) => {
+            console.log("IndexedDB upgrade needed.");
+            const tempDb = e.target.result;
+            if (!tempDb.objectStoreNames.contains(META_STORE_NAME)) {
+                console.log(`Creating object store: ${META_STORE_NAME}`);
+                tempDb.createObjectStore(META_STORE_NAME, { keyPath: 'id' });
+            }
+            if (!tempDb.objectStoreNames.contains(CHUNKS_STORE_NAME)) {
+                console.log(`Creating object store: ${CHUNKS_STORE_NAME}`);
+                const store = tempDb.createObjectStore(CHUNKS_STORE_NAME, { autoIncrement: true });
+                store.createIndex('replayId', 'replayId', { unique: false });
             }
         };
-        const getRecords = async () => window.currentUserId ? (window.userBattleRecords || []) : JSON.parse(localStorage.getItem('battleRecordsLocal') || '[]');
-        const saveRecords = async (records) => {
-            if (window.currentUserId) {
-                // TODO: Implement server-side save for window.userBattleRecords
-                window.userBattleRecords = records;
-            } else {
-                localStorage.setItem('battleRecordsLocal', JSON.stringify(records));
-            }
+        request.onsuccess = (e) => {
+            state.db = e.target.result;
+            console.log("IndexedDB opened successfully.");
+            resolve(state.db);
         };
+    });
 
-        // =================================================================
-        // ヘルパー関数
-        // =================================================================
-        const openDB = () => new Promise((resolve, reject) => {
-            if (db) return resolve(db);
-            if (!window.indexedDB) return reject(new Error("IndexedDBがサポートされていません。"));
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-            request.onerror = (e) => reject("DB Error: " + e.target.error.message);
-            request.onupgradeneeded = (e) => {
-                const tempDb = e.target.result;
-                if (!tempDb.objectStoreNames.contains(META_STORE_NAME)) tempDb.createObjectStore(META_STORE_NAME, { keyPath: 'id' });
-                if (!tempDb.objectStoreNames.contains(CHUNKS_STORE_NAME)) {
-                    const store = tempDb.createObjectStore(CHUNKS_STORE_NAME, { autoIncrement: true });
-                    store.createIndex('replayId', 'replayId', { unique: false });
+    // ユーザーデータをサーバーに送信する関数
+    // Web Extension APIを使用しないので、直接window.tcgAssistantからWebSocketを参照
+    const sendDataToServer = (data) => {
+        const { ws } = window.tcgAssistant;
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'update_user_data', ...data }));
+        } else {
+            console.error("WebSocket is not connected. Data could not be saved to server.");
+        }
+    };
+
+    // デッキデータを取得する関数
+    const getDecks = () => window.tcgAssistant.currentUserId ? (window.tcgAssistant.userRegisteredDecks || []) : JSON.parse(localStorage.getItem('registeredDecksLocal') || '[]');
+    // デッキデータを保存する関数
+    const saveDecks = (decks) => {
+        if (window.tcgAssistant.currentUserId) {
+            window.tcgAssistant.userRegisteredDecks = decks;
+            sendDataToServer({ registeredDecks: decks });
+        } else {
+            localStorage.setItem('registeredDecksLocal', JSON.stringify(decks));
+        }
+    };
+    // 対戦記録データを取得する関数
+    const getRecords = () => window.tcgAssistant.currentUserId ? (window.tcgAssistant.userBattleRecords || []) : JSON.parse(localStorage.getItem('battleRecordsLocal') || '[]');
+    // 対戦記録データを保存する関数
+    const saveRecords = (records) => {
+        if (window.tcgAssistant.currentUserId) {
+            window.tcgAssistant.userBattleRecords = records;
+            sendDataToServer({ battleRecords: records });
+        } else {
+            localStorage.setItem('battleRecordsLocal', JSON.stringify(records));
+        }
+    };
+
+    // 録画中のUIを更新する関数
+    const updateUIRecording = (isRecording) => {
+        if (elements.startRecordBtn) elements.startRecordBtn.style.display = isRecording ? 'none' : 'inline-flex';
+        if (elements.stopRecordBtn) elements.stopRecordBtn.style.display = isRecording ? 'inline-flex' : 'none';
+        if (elements.recordStatus) {
+            elements.recordStatus.textContent = isRecording ? "ステータス: 録画中..." : "ステータス: 待機中";
+            elements.recordStatus.className = isRecording ? 'record-status-recording' : 'record-status-idle';
+        }
+    };
+
+    // 録画を開始する関数
+    const startRecording = async () => {
+        try {
+            // displayMediaで現在のタブのみを録画するように設定
+            // preferCurrentTab はブラウザ拡張機能の権限が必要な可能性があり、Webページでは動作しない可能性がある
+            state.replayStream = await navigator.mediaDevices.getDisplayMedia({
+                video: true,
+                audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+                // preferCurrentTab: true, // Webページでは機能しないか、異なる動作をする可能性があるため削除
+                // systemAudio: 'include' // Webページではすべてのシステムオーディオを含めることは困難な場合がある
+            });
+            updateUIRecording(true);
+            // 録画が終了した際にストップするようにイベントリスナーを設定
+            state.replayStream.getVideoTracks()[0].onended = () => stopRecording();
+            state.recordedChunks = []; // 録画チャンクをリセット
+
+            // サポートされているMIMEタイプを検出
+            let mimeType = 'video/webm';
+            const preferredMimeType = 'video/webm;codecs=vp9,opus';
+            if (MediaRecorder.isTypeSupported(preferredMimeType)) {
+                mimeType = preferredMimeType;
+            } else if (!MediaRecorder.isTypeSupported(mimeType)) {
+                throw new Error("このブラウザでサポートされている録画フォーマットが見つかりません。");
+            }
+
+            // MediaRecorderのインスタンスを作成
+            state.mediaRecorder = new MediaRecorder(state.replayStream, { mimeType: mimeType });
+            state.mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    state.recordedChunks.push(event.data);
+                    console.log(`[MediaRecorder] Data available: ${event.data.size} bytes. Total chunks: ${state.recordedChunks.length}`);
+                } else {
+                    console.log("[MediaRecorder] Data available event fired, but data size is 0.");
                 }
             };
-            request.onsuccess = (e) => { db = e.target.result; resolve(db); };
-        });
+            state.mediaRecorder.onstop = async () => {
+                console.log("[MediaRecorder] Recording stopped event fired.");
+                if(elements.recordStatus) elements.recordStatus.textContent = "ステータス: 処理中...";
+                if (state.recordedChunks.length === 0) {
+                    updateUIRecording(false);
+                    console.warn("No recorded chunks to save. (Empty array)");
+                    window.showCustomDialog('保存エラー', '録画データがありません。短い録画や、ブラウザの許可設定を確認してください。');
+                    return;
+                }
+                console.log(`Recorded chunks length before saving: ${state.recordedChunks.length}`);
+                const replayId = `replay_${Date.now()}`;
+                try {
+                    const db = await openDB();
+                    console.log("IndexedDB instance obtained in saveReplay (onstop):", db);
+                    if (!db) {
+                        console.error("IndexedDB is not available or failed to open, cannot save replay.");
+                        window.showCustomDialog('保存エラー', 'データベースに接続できませんでした。');
+                        updateUIRecording(false);
+                        return;
+                    }
+                    console.log("Attempting to save replay with db object:", db);
+                    const tx = db.transaction([META_STORE_NAME, CHUNKS_STORE_NAME], 'readwrite');
+                    console.log("IndexedDB transaction started.");
 
-        const updateUIForRecording = (isRecording) => {
-            const startBtn = sectionContainer.querySelector('#start-replay-record-button');
-            const stopBtn = sectionContainer.querySelector('#stop-replay-record-button');
-            const statusEl = sectionContainer.querySelector('#record-status');
-            if (startBtn) startBtn.style.display = isRecording ? 'none' : 'inline-flex';
-            if (stopBtn) stopBtn.style.display = isRecording ? 'inline-flex' : 'none';
-            if (statusEl) {
-                statusEl.textContent = isRecording ? "ステータス: 録画中..." : "ステータス: 待機中";
-                statusEl.className = isRecording ? 'record-status-recording' : 'record-status-idle';
-            }
-        };
+                    // メタデータを保存
+                    tx.objectStore(META_STORE_NAME).put({ id: replayId, timestamp: Date.now(), title: `リプレイ ${new Date().toLocaleString()}` }); // デフォルトタイトルを追加
+                    console.log(`Saving replay metadata for ID: ${replayId}`);
 
-        // =================================================================
-        // リプレイ機能ロジック
-        // =================================================================
-        const startRecording = async () => {
-            try {
-                replayStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: true, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
-                    preferCurrentTab: true, systemAudio: 'include'
-                });
-                updateUIForRecording(true);
-                replayStream.getVideoTracks()[0].onended = () => stopRecording();
-                recordedChunks = [];
-                const options = { mimeType: 'video/webm;codecs=vp9,opus' };
-                if (!MediaRecorder.isTypeSupported(options.mimeType)) delete options.mimeType;
-                mediaRecorder = new MediaRecorder(replayStream, options);
-                mediaRecorder.ondataavailable = (event) => { if (event.data.size > 0) recordedChunks.push(event.data); };
-                mediaRecorder.onstop = async () => {
-                    sectionContainer.querySelector('#record-status').textContent = "ステータス: 処理中...";
-                    const replayId = `replay_${Date.now()}`;
-                    try {
-                        const db = await openDB();
-                        const metaTx = db.transaction(META_STORE_NAME, 'readwrite');
-                        metaTx.objectStore(META_STORE_NAME).put({ id: replayId, timestamp: Date.now() });
-                        await new Promise((res, rej) => { metaTx.oncomplete = res; metaTx.onerror = rej; });
-                        const chunkTx = db.transaction(CHUNKS_STORE_NAME, 'readwrite');
-                        const chunkStore = chunkTx.objectStore(CHUNKS_STORE_NAME);
-                        for (const chunk of recordedChunks) chunkStore.add({ replayId, chunk });
-                        await new Promise((res, rej) => { chunkTx.oncomplete = res; chunkTx.onerror = rej; });
-                        recordedChunks = [];
-                        await updateReplayList();
-                        window.showCustomDialog('録画完了', 'リプレイが保存されました。');
-                    } catch (e) { window.showCustomDialog('保存エラー', `リプレイの保存に失敗しました: ${e.message}`); }
-                    finally { updateUIForRecording(false); }
-                };
-                mediaRecorder.start(5000);
-            } catch (err) {
-                console.error("Error starting recording:", err);
-                window.showCustomDialog('録画エラー', `録画を開始できませんでした: ${err.message}`);
-                updateUIForRecording(false);
-            }
-        };
+                    // 録画チャンクを保存
+                    for (const chunk of state.recordedChunks) {
+                        tx.objectStore(CHUNKS_STORE_NAME).add({ replayId, chunk });
+                    }
+                    console.log(`Saving ${state.recordedChunks.length} chunks for replay ID: ${replayId}`);
 
-        const stopRecording = () => {
-            if (mediaRecorder?.state === "recording") mediaRecorder.stop();
-            replayStream?.getTracks().forEach(track => track.stop());
-            replayStream = null;
-            updateUIForRecording(false);
-        };
-        
-        const updateReplayList = async () => {
-            const replaysListEl = sectionContainer.querySelector('#replays-list');
-            if (!replaysListEl) return;
-            try {
-                const db = await openDB();
-                const replays = await new Promise((resolve, reject) => {
-                    const request = db.transaction(META_STORE_NAME, 'readonly').objectStore(META_STORE_NAME).getAll();
-                    request.onsuccess = () => resolve(request.result.sort((a, b) => b.timestamp - a.timestamp));
-                    request.onerror = (e) => reject(e.target.error);
-                });
-                replaysListEl.innerHTML = '';
-                if (replays.length === 0) {
-                    replaysListEl.innerHTML = '<li>保存されたリプレイはありません。</li>';
-                } else {
-                    replays.forEach(replay => {
-                        const li = document.createElement('li');
-                        li.innerHTML = `
-                            <div class="replay-item-info"><strong>${new Date(replay.timestamp).toLocaleString()}</strong></div>
-                            <div class="replay-item-actions">
-                                <button class="play-replay-button button-style" data-id="${replay.id}"><i class="fas fa-play"></i> 再生</button>
-                                <button class="delete-replay-button button-style" data-id="${replay.id}"><i class="fas fa-trash"></i> 削除</button>
-                            </div>`;
-                        replaysListEl.appendChild(li);
+                    // トランザクションの完了を待機
+                    await new Promise((resolve, reject) => {
+                        tx.oncomplete = () => {
+                            console.log(`Transaction for replay ID ${replayId} completed successfully.`);
+                            resolve();
+                        };
+                        tx.onerror = (e) => {
+                            console.error(`Transaction for replay ID ${replayId} failed:`, e.target.error);
+                            reject(e.target.error);
+                        };
                     });
+
+                    state.recordedChunks = []; // 保存後にチャンクをクリア
+                    await updateReplayList(); // リプレイリストを更新
+                    window.showCustomDialog('録画完了', 'リプレイが保存されました。');
+                    console.log(`Replay ID ${replayId} saved and list updated.`);
+                } catch (e) {
+                    console.error("Error saving replay (onstop):", e);
+                    window.showCustomDialog('保存エラー', `リプレイの保存に失敗しました: ${e.message || e}`);
+                } finally {
+                    updateUIRecording(false);
                 }
-            } catch (error) {
-                console.error("Failed to update replay list:", error);
-                replaysListEl.innerHTML = `<li>リプレイリストの読み込みに失敗しました: ${error.message}</li>`;
+            };
+            state.mediaRecorder.onerror = (event) => {
+                console.error("[MediaRecorder] Error during recording:", event.error);
+                window.showCustomDialog('録画エラー', `録画中にエラーが発生しました: ${event.error.name} - ${event.error.message}`);
+                updateUIRecording(false);
+            };
+            state.mediaRecorder.start();
+            console.log("Recording started. MediaRecorder state:", state.mediaRecorder.state);
+        } catch (err) {
+            console.error("Error starting recording:", err);
+            window.showCustomDialog('録画エラー', `録画を開始できませんでした: ${err.message}`);
+            updateUIRecording(false);
+        }
+    };
+
+    // 録画を停止する関数
+    const stopRecording = () => {
+        if (state.mediaRecorder && state.mediaRecorder.state === "recording") {
+            state.mediaRecorder.stop();
+        }
+        state.replayStream?.getTracks().forEach(track => track.stop());
+        state.replayStream = null;
+        updateUIRecording(false);
+        console.log("Recording stopped.");
+    };
+
+    // IndexedDBのカスタム入力ダイアログを表示する関数 (battleRecord.js内でのみ使用)
+    const showLocalCustomInputDialog = (title, message, defaultValue = '') => {
+        return new Promise((resolve) => {
+            const overlay = document.getElementById('tcg-custom-dialog-overlay');
+            if (!overlay) {
+                console.error("Custom dialog overlay not found.");
+                return resolve(null);
             }
-        };
+            const dialogTitle = overlay.querySelector('#tcg-dialog-title');
+            const dialogMessage = overlay.querySelector('#tcg-dialog-message');
+            const buttonsWrapper = overlay.querySelector('#tcg-dialog-buttons');
 
-        const playReplayWithMSE = async (replayId) => {
-            const replayPlayerWrapper = sectionContainer.querySelector('#replay-player-wrapper');
-            const replayVideo = sectionContainer.querySelector('#replay-video');
-            try {
-                const db = await openDB();
-                const chunks = await new Promise((resolve, reject) => {
-                     const request = db.transaction(CHUNKS_STORE_NAME, 'readonly').objectStore(CHUNKS_STORE_NAME).index('replayId').getAll(replayId);
-                     request.onsuccess = () => resolve(request.result.map(r => r.chunk));
-                     request.onerror = (e) => reject(e.target.error);
-                });
-                if (chunks.length === 0) return window.showCustomDialog('エラー', '再生データが見つかりません。');
+            dialogTitle.textContent = title;
+            // メッセージと入力フィールドをHTMLとして設定
+            dialogMessage.innerHTML = `<p>${message}</p><input type="text" id="tcg-dialog-input" value="${defaultValue}" style="width: calc(100% - 24px); padding: 10px; margin-top: 10px; border: 1px solid var(--color-border); border-radius: 8px;">`;
 
-                replayPlayerWrapper.style.display = 'block';
-                const mediaSource = new MediaSource();
-                replayVideo.src = URL.createObjectURL(mediaSource);
-                mediaSource.addEventListener('sourceopen', async () => {
-                    URL.revokeObjectURL(replayVideo.src);
-                    const mimeType = 'video/webm;codecs=vp9,opus';
-                    if (!MediaSource.isTypeSupported(mimeType)) return window.showCustomDialog('再生エラー', 'ブラウザが再生フォーマットをサポートしていません。');
-                    
-                    const sourceBuffer = mediaSource.addSourceBuffer(mimeType);
-                    let i = 0;
-                    const appendNextChunk = async () => {
-                        if (sourceBuffer.updating || i >= chunks.length) {
-                            if (!sourceBuffer.updating && mediaSource.readyState === 'open') mediaSource.endOfStream();
-                            return;
-                        }
+            const inputElement = dialogMessage.querySelector('#tcg-dialog-input');
+
+            buttonsWrapper.innerHTML = ''; // 既存のボタンをクリア
+            const okButton = document.createElement('button');
+            okButton.textContent = 'OK';
+            okButton.onclick = () => {
+                overlay.classList.remove('show');
+                resolve(inputElement.value);
+                // ダイアログを閉じた後に、入力フィールドをクリーンアップ
+                dialogMessage.innerHTML = '';
+            };
+            buttonsWrapper.appendChild(okButton);
+
+            const cancelButton = document.createElement('button');
+            cancelButton.textContent = 'キャンセル';
+            cancelButton.onclick = () => {
+                overlay.classList.remove('show');
+                resolve(null);
+                // ダイアログを閉じた後に、入力フィールドをクリーンアップ
+                dialogMessage.innerHTML = '';
+            };
+            buttonsWrapper.appendChild(cancelButton);
+
+            overlay.classList.add('show');
+            inputElement.focus(); // 入力フィールドにフォーカス
+            inputElement.select(); // デフォルトテキストを選択して編集しやすくする
+        });
+    };
+
+    // リプレイの名前を変更する関数
+    const renameReplay = async (replayId) => {
+        try {
+            const db = await openDB();
+            // まずはリプレイデータを取得するためのトランザクション
+            const getTx = db.transaction(META_STORE_NAME, 'readonly');
+            const getStore = getTx.objectStore(META_STORE_NAME);
+            const getRequest = getStore.get(replayId);
+
+            getRequest.onsuccess = async (event) => {
+                const replay = event.target.result;
+                if (replay) {
+                    const newTitle = await showLocalCustomInputDialog('リプレイ名の変更', '新しいリプレイ名を入力してください:', replay.title || '');
+                    if (newTitle !== null && newTitle.trim() !== '') {
+                        // 新しい名前で更新するための別のトランザクション
                         try {
-                            sourceBuffer.appendBuffer(await chunks[i].arrayBuffer());
-                            i++;
-                        } catch (error) { console.error("Buffer append error:", error); }
-                    };
-                    sourceBuffer.addEventListener('updateend', appendNextChunk);
-                    await appendNextChunk();
-                });
-                replayVideo.play();
-            } catch (error) {
-                console.error("Error playing replay:", error);
-                window.showCustomDialog('再生エラー', `リプレイの再生中にエラーが発生しました: ${error.message}`);
-            }
-        };
+                            const updateTx = db.transaction(META_STORE_NAME, 'readwrite');
+                            const updateStore = updateTx.objectStore(META_STORE_NAME);
+                            replay.title = newTitle.trim();
+                            const updateRequest = updateStore.put(replay);
+                            await new Promise((res, rej) => {
+                                updateRequest.onsuccess = res;
+                                updateRequest.onerror = rej;
+                            });
+                            console.log(`Replay ID ${replayId} renamed to: ${newTitle}`);
+                            await updateReplayList();
+                            window.showCustomDialog('成功', 'リプレイ名を変更しました。');
+                        } catch (updateError) {
+                            console.error("Error updating replay title in DB:", updateError);
+                            window.showCustomDialog('エラー', `リプレイ名の変更に失敗しました: ${updateError.message}`);
+                        }
+                    } else if (newTitle !== null) { // OKが押されたが空の場合
+                        window.showCustomDialog('エラー', 'リプレイ名は空にできません。');
+                    }
+                } else {
+                    window.showCustomDialog('エラー', '指定されたリプレイが見つかりません。');
+                }
+            };
+            getRequest.onerror = (e) => {
+                console.error("Error fetching replay for rename:", e.target.error);
+                window.showCustomDialog('エラー', `リプレイの取得に失敗しました: ${e.target.error.message}`);
+            };
+        } catch (error) {
+            console.error("Error in renameReplay function:", error);
+            window.showCustomDialog('エラー', `リプレイ名の変更中にエラーが発生しました: ${error.message}`);
+        }
+    };
 
-        const deleteReplay = async (replayId) => {
-            try {
-                const db = await openDB();
-                const metaTx = db.transaction(META_STORE_NAME, 'readwrite');
-                metaTx.objectStore(META_STORE_NAME).delete(replayId);
-                await new Promise((res, rej) => { metaTx.oncomplete = res; metaTx.onerror = rej; });
-                
-                const chunkTx = db.transaction(CHUNKS_STORE_NAME, 'readwrite');
-                const chunkStore = chunkTx.objectStore(CHUNKS_STORE_NAME);
-                const index = chunkStore.index('replayId');
-                const request = index.openKeyCursor(IDBKeyRange.only(replayId));
+
+    // リプレイリストを更新する関数
+    const updateReplayList = async () => {
+        if (!elements.replaysList) return;
+        try {
+            const db = await openDB();
+            if (!db) {
+                console.error("IndexedDB is not available for updateReplayList.");
+                elements.replaysList.innerHTML = `<li>リプレイリストの読み込みに失敗しました。（DB接続エラー）</li>`;
+                return;
+            }
+            const replays = await new Promise((resolve, reject) => {
+                const request = db.transaction(META_STORE_NAME, 'readonly').objectStore(META_STORE_NAME).getAll();
                 request.onsuccess = () => {
-                    const cursor = request.result;
-                    if (cursor) {
-                        chunkStore.delete(cursor.primaryKey);
-                        cursor.continue();
-                    }
+                    const result = request.result.sort((a, b) => b.timestamp - a.timestamp);
+                    console.log("Fetched replays metadata:", result);
+                    resolve(result);
                 };
-                await new Promise((res, rej) => { chunkTx.oncomplete = res; chunkTx.onerror = rej; });
-                await updateReplayList();
-                window.showCustomDialog('成功', 'リプレイを削除しました。');
-            } catch (error) {
-                console.error("Failed to delete replay:", error);
-                window.showCustomDialog('削除エラー', `リプレイの削除に失敗しました: ${error.message}`);
-            }
-        };
-
-        // =================================================================
-        // 観戦機能ロジック (WebRTC with WebSocket Signaling)
-        // =================================================================
-        const startBroadcast = async () => {
-            if (!window.ws || window.ws.readyState !== WebSocket.OPEN) {
-                return window.showCustomDialog('エラー', 'サーバーに接続していません。レート戦タブからログインしてください。');
-            }
-            try {
-                broadcastStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-                updateUIForBroadcast(true);
-                broadcastStream.getVideoTracks()[0].onended = () => stopBroadcast();
-
-                peerConnection = new RTCPeerConnection(RTC_CONFIG);
-                broadcastStream.getTracks().forEach(track => peerConnection.addTrack(track, broadcastStream));
-
-                peerConnection.onicecandidate = event => {
-                    if (event.candidate) {
-                        window.ws.send(JSON.stringify({
-                            type: 'spectate_signal',
-                            roomId: currentRoomId,
-                            signal: { candidate: event.candidate }
-                        }));
-                    }
+                request.onerror = (e) => {
+                    console.error("Error fetching replays metadata:", e.target.error);
+                    reject(e.target.error);
                 };
-                
-                // サーバーに配信開始を通知し、ルームIDを受け取る
-                window.ws.send(JSON.stringify({ type: 'start_broadcast' }));
+            });
+            // リプレイリストのHTMLを生成
+            elements.replaysList.innerHTML = replays.length === 0 ? '<li>保存されたリプレイはありません。</li>' : replays.map(replay => `
+                <li>
+                    <div class="replay-item-info"><strong>${replay.title || new Date(replay.timestamp).toLocaleString()}</strong></div>
+                    <div class="replay-item-actions">
+                        <button class="play-replay-button button-style" data-id="${replay.id}"><i class="fas fa-play"></i> 再生</button>
+                        <button class="rename-replay-button button-style" data-id="${replay.id}"><i class="fas fa-edit"></i> 名前変更</button>
+                        <button class="delete-replay-button button-style" data-id="${replay.id}"><i class="fas fa-trash"></i> 削除</button>
+                    </div>
+                </li>`).join('');
+            console.log("Replay list updated on UI.");
+        }
+        catch (error) {
+            console.error("Error updating replay list:", error);
+            elements.replaysList.innerHTML = `<li>リプレイリストの読み込みに失敗しました。</li>`;
+        }
+    };
 
-            } catch (err) {
-                console.error("Broadcast failed to start:", err);
-                window.showCustomDialog('配信エラー', `配信を開始できませんでした: ${err.message}`);
-                stopBroadcast();
+    // リプレイを再生する関数
+    const playReplay = async (replayId) => {
+        if (!elements.replayPlayerWrapper || !elements.replayVideo) return;
+        try {
+            const db = await openDB();
+            if (!db) {
+                console.error("IndexedDB is not available for playReplay.");
+                window.showCustomDialog('再生エラー', 'データベースに接続できませんでした。');
+                return;
             }
-        };
-        
-        const stopBroadcast = () => {
-            if (window.ws && window.ws.readyState === WebSocket.OPEN && currentRoomId) {
-                window.ws.send(JSON.stringify({ type: 'stop_broadcast', roomId: currentRoomId }));
+            const chunks = await new Promise((resolve, reject) => {
+                 const request = db.transaction(CHUNKS_STORE_NAME, 'readonly').objectStore(CHUNKS_STORE_NAME).index('replayId').getAll(replayId);
+                 request.onsuccess = () => resolve(request.result.map(r => r.chunk));
+                 request.onerror = (e) => reject(e.target.error);
+            });
+            if (chunks.length === 0) {
+                window.showCustomDialog('エラー', '再生データが見つかりません。');
+                console.warn(`No chunks found for replay ID: ${replayId}`);
+                return;
             }
-            broadcastStream?.getTracks().forEach(track => track.stop());
-            peerConnection?.close();
-            peerConnection = null;
-            broadcastStream = null;
-            currentRoomId = null;
-            updateUIForBroadcast(false);
-        };
 
-        const updateUIForBroadcast = (isBroadcasting) => {
-            sectionContainer.querySelector('#start-broadcast-button').style.display = isBroadcasting ? 'none' : 'block';
-            sectionContainer.querySelector('#stop-broadcast-button').style.display = isBroadcasting ? 'block' : 'none';
-            sectionContainer.querySelector('#broadcast-status').style.display = isBroadcasting ? 'block' : 'none';
-        };
+            elements.replayPlayerWrapper.style.display = 'block';
+            const blob = new Blob(chunks, { type: chunks[0].type });
+            elements.replayVideo.src = URL.createObjectURL(blob);
+            elements.replayVideo.play();
+            console.log(`Playing replay ID: ${replayId}`);
+        } catch (error) {
+            console.error("Error playing replay:", error);
+            window.showCustomDialog('再生エラー', `リプレイの再生中にエラーが発生しました: ${error.message}`);
+        }
+    };
 
-        const startSpectating = async () => {
-            if (!window.ws || window.ws.readyState !== WebSocket.OPEN) {
-                return window.showCustomDialog('エラー', 'サーバーに接続していません。レート戦タブからログインしてください。');
-            }
-            const roomId = sectionContainer.querySelector('#spectate-room-id-input').value.trim();
-            if (!roomId) return window.showCustomDialog('エラー', 'ルームIDを入力してください。');
-            
-            currentRoomId = roomId;
-            updateUIForSpectate(true);
+    // リプレイを削除する関数
+    const deleteReplay = async (replayId) => {
+        try {
+            const db = await openDB();
+            const tx = db.transaction([META_STORE_NAME, CHUNKS_STORE_NAME], 'readwrite');
 
-            window.ws.send(JSON.stringify({ type: 'join_spectate_room', roomId: roomId }));
-        };
+            // メタデータを削除
+            tx.objectStore(META_STORE_NAME).delete(replayId);
+            console.log(`Deleting replay metadata for ID: ${replayId}`);
 
-        const stopSpectating = () => {
-            if (window.ws && window.ws.readyState === WebSocket.OPEN && currentRoomId) {
-                window.ws.send(JSON.stringify({ type: 'leave_spectate_room', roomId: currentRoomId }));
-            }
-            spectateConnection?.close();
-            spectateConnection = null;
-            currentRoomId = null;
-            updateUIForSpectate(false);
-            const videoEl = sectionContainer.querySelector('#spectate-video');
-            if(videoEl) videoEl.srcObject = null;
-        };
-
-        const updateUIForSpectate = (isSpectating) => {
-            sectionContainer.querySelector('#spectate-form').style.display = isSpectating ? 'none' : 'flex';
-            sectionContainer.querySelector('#spectate-view').style.display = isSpectating ? 'block' : 'none';
-        };
-        
-        // WebSocketメッセージを処理するグローバルハンドラ
-        window.handleSpectateSignal = async (message) => {
-            const { roomId, signal } = message;
-
-            // 自分が配信者側の場合
-            if (peerConnection && signal.answer) {
-                if (peerConnection.signalingState !== "stable") {
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.answer));
+            // チャンクを削除
+            const index = tx.objectStore(CHUNKS_STORE_NAME).index('replayId');
+            const request = index.openKeyCursor(IDBKeyRange.only(replayId));
+            request.onsuccess = () => {
+                const cursor = request.result;
+                if (cursor) {
+                    tx.objectStore(CHUNKS_STORE_NAME).delete(cursor.primaryKey);
+                    cursor.continue();
                 }
-            }
-            if (peerConnection && signal.candidate) {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
-            }
+            };
 
-            // 自分が視聴者側の場合
-            if (roomId === currentRoomId && signal.offer) {
-                spectateConnection = new RTCPeerConnection(RTC_CONFIG);
-                spectateConnection.onicecandidate = event => {
-                    if (event.candidate) {
-                        window.ws.send(JSON.stringify({
-                            type: 'spectate_signal',
-                            roomId: currentRoomId,
-                            signal: { candidate: event.candidate }
-                        }));
-                    }
+            await new Promise((res, rej) => {
+                tx.oncomplete = () => {
+                    console.log(`Transaction for deleting replay ID ${replayId} completed.`);
+                    res();
                 };
-                spectateConnection.ontrack = event => {
-                    const videoEl = sectionContainer.querySelector('#spectate-video');
-                    if (videoEl && videoEl.srcObject !== event.streams[0]) {
-                        videoEl.srcObject = event.streams[0];
-                    }
+                tx.onerror = (e) => {
+                    console.error(`Transaction for deleting replay ID ${replayId} failed:`, e.target.error);
+                    rej(e.target.error);
                 };
-                await spectateConnection.setRemoteDescription(new RTCSessionDescription(signal.offer));
-                const answer = await spectateConnection.createAnswer();
-                await spectateConnection.setLocalDescription(answer);
-                window.ws.send(JSON.stringify({
-                    type: 'spectate_signal',
-                    roomId: currentRoomId,
-                    signal: { answer: answer }
-                }));
-            }
-            if (spectateConnection && signal.candidate) {
-                await spectateConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
-            }
-        };
-        
-        window.handleBroadcastStarted = async (message) => {
-            currentRoomId = message.roomId;
-            sectionContainer.querySelector('#broadcast-room-id').value = currentRoomId;
-            
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-            
-            window.ws.send(JSON.stringify({
-                type: 'spectate_signal',
-                roomId: currentRoomId,
-                signal: { offer: offer }
-            }));
-        };
-        
-        // =================================================================
-        // 戦績・デッキ管理ロジック
-        // =================================================================
-        const loadRegisteredDecks = async () => {
-            const decks = await getDecks();
-            const registeredDecksList = sectionContainer.querySelector('#registered-decks-list');
-            const myDeckSelect = sectionContainer.querySelector('#my-deck-select');
-            const opponentDeckSelect = sectionContainer.querySelector('#opponent-deck-select');
-            if (!registeredDecksList || !myDeckSelect || !opponentDeckSelect) return;
-            const sortedDecks = [...decks].sort((a, b) => a.name.localeCompare(b.name));
-            registeredDecksList.innerHTML = '';
-            myDeckSelect.innerHTML = '<option value="">登録済みデッキから選択</option>';
-            opponentDeckSelect.innerHTML = '<option value="">登録済みデッキから選択</option>';
-            if (sortedDecks.length === 0) {
-                registeredDecksList.innerHTML = `<li>まだ登録されたデッキがありません。</li>`;
-            } else {
-                sortedDecks.forEach(deck => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `${deck.name} (${deck.type}) <button class="delete-deck-button button-style" data-name="${deck.name}" title="削除"><i class="fas fa-trash-alt"></i></button>`;
-                    registeredDecksList.appendChild(li);
-                    const option = `<option value="${deck.name}" data-type="${deck.type}">${deck.name} (${deck.type})</option>`;
-                    myDeckSelect.innerHTML += option;
-                    opponentDeckSelect.innerHTML += option;
-                });
-            }
-        };
+            });
+            await updateReplayList(); // 削除後にリストを更新
+            window.showCustomDialog('成功', 'リプレイを削除しました。');
+            console.log(`Replay ID ${replayId} deleted and list updated.`);
+        } catch (error) {
+            console.error("Error deleting replay:", error);
+            window.showCustomDialog('削除エラー', `リプレイの削除に失敗しました: ${error.message}`);
+        }
+    };
 
-        const loadBattleRecords = async () => {
-            const records = await getRecords();
-            const battleRecordsList = sectionContainer.querySelector('#battle-records-list');
-            if (!battleRecordsList) return;
-            battleRecordsList.innerHTML = '';
-            if (records.length === 0) {
-                battleRecordsList.innerHTML = `<li>まだ対戦記録がありません。</li>`;
-            } else {
-                [...records].reverse().forEach((record, revIdx) => {
-                    const origIdx = records.length - 1 - revIdx;
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <strong>${record.timestamp}</strong><br>
-                        自分: ${record.myDeck} vs 相手: ${record.opponentDeck}<br>
-                        結果: ${record.result === 'win' ? '勝利' : '敗北'} (${record.firstSecond === 'first' ? '先攻' : '後攻'})
-                        <button class="delete-record-button button-style" data-index="${origIdx}" title="削除"><i class="fas fa-trash-alt"></i></button>`;
-                    battleRecordsList.appendChild(li);
-                });
-            }
-            calculateAndDisplayStats(records);
-        };
-        
-        const calculateAndDisplayStats = (records) => {
-            const container = sectionContainer.querySelector('#battle-stats');
-            if (!container) return;
-            const totalGames = records.length;
-            const wins = records.filter(r => r.result === 'win').length;
-            const losses = totalGames - wins;
-            const winRate = totalGames > 0 ? (wins / totalGames * 100).toFixed(1) : '0.0';
-            container.querySelector('#total-games').textContent = totalGames;
-            container.querySelector('#total-wins').textContent = wins;
-            container.querySelector('#total-losses').textContent = losses;
-            container.querySelector('#win-rate').textContent = `${winRate}%`;
-        };
+    // 登録済みデッキをロードする関数
+    const loadRegisteredDecks = async () => {
+        const decks = getDecks();
+        const sortedDecks = [...decks].sort((a, b) => a.name.localeCompare(b.name));
+        if (elements.registeredDecksList) {
+            elements.registeredDecksList.innerHTML = sortedDecks.length === 0 ? `<li>まだ登録されたデッキがありません。</li>` : sortedDecks.map(deck => `
+                <li>${deck.name} (${deck.type}) <button class="delete-deck-button button-style" data-name="${deck.name}" title="削除"><i class="fas fa-trash-alt"></i></button></li>
+            `).join('');
+        }
+        if (elements.myDeckSelect && elements.opponentDeckSelect) {
+            const optionsHtml = sortedDecks.map(deck => `<option value="${deck.name}">${deck.name} (${deck.type})</option>`).join('');
+            elements.myDeckSelect.innerHTML = '<option value="">登録済みデッキから選択</option>' + optionsHtml;
+            elements.opponentDeckSelect.innerHTML = '<option value="">登録済みデッキから選択</option>' + optionsHtml;
+        }
+    };
 
-        // =================================================================
-        // タブ切り替え
-        // =================================================================
-        const showBattleRecordTab = (tabId) => {
-            sectionContainer.querySelectorAll('.battle-record-tab-content').forEach(c => c.classList.remove('active'));
-            sectionContainer.querySelectorAll('.battle-record-tab-button').forEach(b => b.classList.remove('active'));
-            const targetContent = sectionContainer.querySelector(`#battle-record-tab-${tabId}`);
-            const targetButton = sectionContainer.querySelector(`.battle-record-tab-button[data-tab="${tabId}"]`);
-            if (targetContent) targetContent.classList.add('active');
-            if (targetButton) targetButton.classList.add('active');
+    // 対戦記録をロードする関数
+    const loadBattleRecords = async () => {
+        const records = getRecords();
+        if (elements.battleRecordsList) {
+            elements.battleRecordsList.innerHTML = records.length === 0 ? `<li>まだ対戦記録がありません。</li>` : [...records].reverse().map((record, revIdx) => {
+                const origIdx = records.length - 1 - revIdx; // 元のインデックスを計算
+                return `<li>
+                    <strong>${record.timestamp}</strong><br>
+                    自分: ${record.myDeck} vs 相手: ${record.opponentDeck}<br>
+                    結果: ${record.result === 'win' ? '勝利' : '敗北'} (${record.firstSecond === 'first' ? '先攻' : '後攻'})
+                    <button class="delete-record-button button-style" data-index="${origIdx}" title="削除"><i class="fas fa-trash-alt"></i></button>
+                </li>`;
+            }).join('');
+        }
+        calculateAndDisplayStats(records); // 統計情報を計算して表示
+    };
 
-            if (tabId === 'replay') updateReplayList();
-            else if (tabId === 'deck-management' || tabId === 'new-record') loadRegisteredDecks();
-            else if (tabId === 'past-records' || tabId === 'stats-summary') loadBattleRecords();
-        };
+    // 統計情報を計算して表示する関数
+    const calculateAndDisplayStats = (records) => {
+        if (!elements.statsContainer) return;
+        const totalGames = records.length;
+        const wins = records.filter(r => r.result === 'win').length;
+        const firstWins = records.filter(r => r.firstSecond === 'first' && r.result === 'win').length;
+        const firstGames = records.filter(r => r.firstSecond === 'first').length;
+        const secondWins = records.filter(r => r.firstSecond === 'second' && r.result === 'win').length;
+        const secondGames = records.filter(r => r.firstSecond === 'second').length;
 
-        // =================================================================
-        // イベントリスナー設定 (イベント委譲)
-        // =================================================================
-        sectionContainer.addEventListener('click', async (event) => {
-            const button = event.target.closest('button');
-            if (!button) return;
+        elements.totalGames.textContent = totalGames;
+        elements.totalWins.textContent = wins;
+        elements.totalLosses.textContent = totalGames - wins;
+        elements.winRate.textContent = `${totalGames > 0 ? (wins / totalGames * 100).toFixed(1) : '0.0'}%`;
+        elements.firstWinRate.textContent = `${firstGames > 0 ? (firstWins / firstGames * 100).toFixed(1) : '0.0'}%`;
+        elements.secondWinRate.textContent = `${secondGames > 0 ? (secondWins / secondGames * 100).toFixed(1) : '0.0'}%`;
 
-            // タブ
-            if (button.matches('.battle-record-tab-button')) showBattleRecordTab(button.dataset.tab);
-            // リプレイ
-            if (button.id === 'start-replay-record-button') startRecording();
-            if (button.id === 'stop-replay-record-button') stopRecording();
-            if (button.id === 'close-replay-player-button') {
-                sectionContainer.querySelector('#replay-player-wrapper').style.display = 'none';
-                const video = sectionContainer.querySelector('#replay-video');
-                if (video) { video.pause(); video.src = ''; }
+        // デッキタイプ別勝率の計算と表示 (自分のデッキ)
+        const myDeckWinRates = {};
+        records.forEach(record => {
+            if (!myDeckWinRates[record.myDeck]) {
+                myDeckWinRates[record.myDeck] = { wins: 0, total: 0 };
             }
-            if (button.matches('.play-replay-button')) playReplayWithMSE(button.dataset.id);
-            if (button.matches('.delete-replay-button')) {
-                if (await window.showCustomDialog('確認', 'このリプレイを本当に削除しますか？', true)) {
-                    deleteReplay(button.dataset.id);
-                }
+            myDeckWinRates[record.myDeck].total++;
+            if (record.result === 'win') {
+                myDeckWinRates[record.myDeck].wins++;
             }
-            // 観戦
-            if (button.id === 'start-broadcast-button') startBroadcast();
-            if (button.id === 'stop-broadcast-button') stopBroadcast();
-            if (button.id === 'start-spectate-button') startSpectating();
-            if (button.id === 'stop-spectate-button') stopSpectating();
-            if (button.id === 'copy-room-id-button') {
-                const roomIdInput = sectionContainer.querySelector('#broadcast-room-id');
-                roomIdInput.select();
-                document.execCommand('copy');
-                window.showCustomDialog('成功', 'ルームIDをコピーしました。');
+        });
+        const myDeckRatesHtml = Object.entries(myDeckWinRates).map(([deckName, stats]) => {
+            const rate = stats.total > 0 ? (stats.wins / stats.total * 100).toFixed(1) : '0.0';
+            return `<p>${deckName}: ${rate}% (${stats.wins}勝/${stats.total}戦)</p>`;
+        }).join('');
+        const myDeckTypeWinRatesDiv = getElement('my-deck-type-win-rates');
+        if (myDeckTypeWinRatesDiv) myDeckTypeWinRatesDiv.innerHTML = myDeckRatesHtml || '<p>データなし</p>';
+
+        // デッキタイプ別勝率の計算と表示 (相手のデッキ)
+        const opponentDeckWinRates = {};
+        records.forEach(record => {
+            if (!opponentDeckWinRates[record.opponentDeck]) {
+                opponentDeckWinRates[record.opponentDeck] = { wins: 0, total: 0 };
             }
-            if (button.id === 'register-deck-button') {
-                const nameInput = sectionContainer.querySelector('#new-deck-name');
-                const typeSelect = sectionContainer.querySelector('#new-deck-type');
-                const deckName = nameInput.value.trim();
-                const deckType = typeSelect.value;
+            opponentDeckWinRates[record.opponentDeck].total++;
+            if (record.result === 'lose') { // 相手のデッキタイプに対する自分の勝利 (自分の敗北)
+                opponentDeckWinRates[record.opponentDeck].wins++;
+            }
+        });
+        const opponentDeckRatesHtml = Object.entries(opponentDeckWinRates).map(([deckName, stats]) => {
+            const rate = stats.total > 0 ? (stats.wins / stats.total * 100).toFixed(1) : '0.0';
+            return `<p>${deckName}: ${rate}% (${stats.wins}勝/${stats.total}戦)</p>`;
+        }).join('');
+        const opponentDeckTypeWinRatesDiv = getElement('opponent-deck-type-win-rates');
+        if (opponentDeckTypeWinRatesDiv) opponentDeckTypeWinRatesDiv.innerHTML = opponentDeckRatesHtml || '<p>データなし</p>';
+    };
+
+    // ミニゲームの統計情報を表示する関数
+    const displayMinigameStats = async () => {
+        const container = elements.minigameStatsContainer;
+        if (!container) return;
+        // ローカルストレージからミニゲームの統計データを取得 (Web Extension API 'a' は削除されているので、直接 localStorage を使用)
+        const minigameStats = JSON.parse(localStorage.getItem('minigameStats') || '{}');
+        const quizTypes = { cardName: 'カード名当て', enlarge: 'イラスト拡大', silhouette: 'シルエット', mosaic: 'モザイク' };
+        let html = '<ul>';
+        for (const [type, data] of Object.entries(minigameStats)) {
+            const total = data.wins + data.losses;
+            const winRate = total > 0 ? ((data.wins / total) * 100).toFixed(1) : '0.0';
+            const avgHints = data.wins > 0 ? (data.totalHints / data.wins).toFixed(2) : '0.00';
+            html += `<li><h4>${quizTypes[type] || type}</h4><p>プレイ回数: ${total}回</p><p>正解率: ${winRate}%</p>${type === 'cardName' ? `<p>平均ヒント数: ${avgHints}個</p>` : ''}</li>`;
+        }
+        html += '</ul>';
+        container.innerHTML = Object.keys(minigameStats).length > 0 ? html : '<p>まだミニゲームのプレイ記録がありません。</p>';
+    };
+
+    // イベントリスナーを設定する関数
+    const setupEventListeners = () => {
+        elements.sectionContainer?.addEventListener('click', async (e) => {
+            const target = e.target.closest('button');
+            if (!target) return;
+            const id = target.id;
+            const classList = target.classList;
+
+            if (id === 'start-replay-record-button') startRecording();
+            else if (id === 'stop-replay-record-button') stopRecording();
+            else if (id === 'close-replay-player-button') {
+                if(elements.replayPlayerWrapper) elements.replayPlayerWrapper.style.display = 'none';
+                if (elements.replayVideo) { elements.replayVideo.pause(); elements.replayVideo.src = ''; }
+            }
+            else if (classList.contains('play-replay-button')) playReplay(target.dataset.id);
+            else if (classList.contains('rename-replay-button')) renameReplay(target.dataset.id);
+            else if (classList.contains('delete-replay-button')) {
+                // window.showCustomDialog は main.js でグローバルに定義されていると仮定
+                if (await window.showCustomDialog('確認', 'このリプレイを本当に削除しますか？', true)) deleteReplay(target.dataset.id);
+            }
+            else if (id === 'register-deck-button') {
+                const deckName = elements.newDeckNameInput.value.trim();
+                const deckType = elements.newDeckTypeSelect.value;
                 if (!deckName || !deckType) return window.showCustomDialog('エラー', 'デッキ名とタイプは必須です。');
-                const decks = await getDecks();
+                const decks = getDecks();
                 if (decks.some(d => d.name === deckName)) return window.showCustomDialog('エラー', '同じ名前のデッキが既に登録されています。');
-                decks.push({ name: deckName, type: deckType });
-                await saveDecks(decks);
+                saveDecks([...decks, { name: deckName, type: deckType }]);
                 window.showCustomDialog('成功', 'デッキを登録しました。');
-                nameInput.value = '';
-                typeSelect.value = '';
+                elements.newDeckNameInput.value = '';
                 await loadRegisteredDecks();
             }
-            if (button.matches('.delete-deck-button')) {
-                const deckName = button.dataset.name;
+            else if (classList.contains('delete-deck-button')) {
+                const deckName = target.dataset.name;
                 if (await window.showCustomDialog('確認', `デッキ「${deckName}」を削除しますか？`, true)) {
-                    let decks = await getDecks();
-                    decks = decks.filter(d => d.name !== deckName);
-                    await saveDecks(decks);
+                    saveDecks(getDecks().filter(d => d.name !== deckName));
                     await loadRegisteredDecks();
                 }
             }
-            // 戦績記録
-            if (button.id === 'save-battle-record-button') {
-                const myDeckSelect = sectionContainer.querySelector('#my-deck-select');
-                const opponentDeckSelect = sectionContainer.querySelector('#opponent-deck-select');
-                const winLossSelect = sectionContainer.querySelector('#win-loss-select');
-                const firstSecondSelect = sectionContainer.querySelector('#first-second-select');
-                const notesTextarea = sectionContainer.querySelector('#notes-textarea');
-                if (!myDeckSelect.value || !opponentDeckSelect.value || !firstSecondSelect.value) return window.showCustomDialog('エラー', '必須項目を入力してください。');
-                const newRecord = {
-                    timestamp: new Date().toLocaleString(), myDeck: myDeckSelect.value, opponentDeck: opponentDeckSelect.value,
-                    result: winLossSelect.value, firstSecond: firstSecondSelect.value, notes: notesTextarea.value.trim()
-                };
-                const records = await getRecords();
-                records.push(newRecord);
-                await saveRecords(records);
+            else if (id === 'save-battle-record-button') {
+                if (!elements.myDeckSelect.value || !elements.opponentDeckSelect.value || !elements.firstSecondSelect.value) return window.showCustomDialog('エラー', '必須項目を入力してください。');
+                const newRecord = { timestamp: new Date().toLocaleString(), myDeck: elements.myDeckSelect.value, opponentDeck: elements.opponentDeckSelect.value, result: elements.winLossSelect.value, firstSecond: elements.firstSecondSelect.value, notes: elements.notesTextarea.value.trim() };
+                saveRecords([...getRecords(), newRecord]);
                 window.showCustomDialog('成功', '対戦記録を保存しました。');
-                notesTextarea.value = '';
-                showBattleRecordTab('past-records');
+                elements.notesTextarea.value = '';
+                showBattleRecordTab('new-record'); // 新規記録タブに戻る
             }
-            if (button.matches('.delete-record-button')) {
-                const index = parseInt(button.dataset.index, 10);
+            else if (classList.contains('delete-record-button')) {
+                const index = parseInt(target.dataset.index, 10);
                 if (await window.showCustomDialog('確認', 'この記録を削除しますか？', true)) {
-                    const records = await getRecords();
+                    const records = getRecords();
                     if (index >= 0 && index < records.length) {
                         records.splice(index, 1);
-                        await saveRecords(records);
+                        saveRecords(records);
                         await loadBattleRecords();
                     }
                 }
             }
         });
 
-        // =================================================================
-        // 初期化
-        // =================================================================
-        showBattleRecordTab('replay');
-        isInitialized = true;
+        // タブボタンのイベントリスナーを設定
+        elements.sectionContainer?.querySelectorAll('.battle-record-tab-button').forEach(button => {
+            button.addEventListener('click', () => showBattleRecordTab(button.dataset.tab));
+        });
     };
-})();
+
+    // 初期化処理
+    setupEventListeners();
+    showBattleRecordTab('new-record'); // 初期表示を「新規記録」タブに変更
+}

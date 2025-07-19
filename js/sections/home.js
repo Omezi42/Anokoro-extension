@@ -1,22 +1,25 @@
 // js/sections/home.js
+export function initialize() {
+    // 初期化済みフラグをチェック
+    if (document.body.dataset.homeInitialized === 'true') return;
+    document.body.dataset.homeInitialized = 'true';
 
-// グローバルなallCardsとshowCustomDialog関数を受け取るための初期化関数
-window.initHomeSection = async function() { // async を維持
     console.log("Home section initialized.");
 
-    // Firefox互換性のためのbrowserオブジェクトのフォールバック
-    if (typeof browser === 'undefined') {
-        var browser = chrome;
-    }
+    // ブラウザAPIの互換性を確保
+    // const a = (typeof browser !== "undefined") ? browser : chrome; // 削除
 
+    // DOM要素を取得
     const homeLoginStatus = document.getElementById('home-login-status');
     const homeLoginButton = document.getElementById('home-login-button');
     const homeLogoutButton = document.getElementById('home-logout-button');
 
-    // ログイン状態を更新する関数
+    // ログイン状態に応じてUIを更新する関数
     const updateLoginStatusUI = () => {
-        if (window.currentUserId && window.currentUsername) {
-            if (homeLoginStatus) homeLoginStatus.innerHTML = `現在、<strong>${window.currentUsername}</strong> としてログイン中。`;
+        // window.tcgAssistantはmain.jsでグローバルに定義されていると仮定
+        const { currentUserId, currentUsername } = window.tcgAssistant;
+        if (currentUserId && currentUsername) {
+            if (homeLoginStatus) homeLoginStatus.innerHTML = `現在、<strong>${currentUsername}</strong> としてログイン中。`;
             if (homeLoginButton) homeLoginButton.style.display = 'none';
             if (homeLogoutButton) homeLogoutButton.style.display = 'inline-block';
         } else {
@@ -26,40 +29,24 @@ window.initHomeSection = async function() { // async を維持
         }
     };
 
-    // イベントリスナーを再アタッチ
+    // イベントリスナーを設定
     if (homeLoginButton) {
-        homeLoginButton.removeEventListener('click', handleHomeLoginButtonClick);
-        homeLoginButton.addEventListener('click', handleHomeLoginButtonClick);
+        // window.toggleSidebar は main.js でグローバルに定義されているためそのまま使用
+        homeLoginButton.addEventListener('click', () => window.toggleSidebar('rateMatch', true));
     }
     if (homeLogoutButton) {
-        homeLogoutButton.removeEventListener('click', handleHomeLogoutButtonClick);
-        homeLogoutButton.addEventListener('click', handleHomeLogoutButtonClick);
+        homeLogoutButton.addEventListener('click', () => {
+            // rateMatch.jsで定義されたグローバル関数を呼び出す
+            // window.handleRateMatchLogout は rateMatch.js がロードされたときにグローバルに設定されると仮定
+            if (window.handleRateMatchLogout) {
+                window.handleRateMatchLogout();
+            }
+        });
     }
 
-    // イベントハンドラ関数
-    function handleHomeLoginButtonClick() {
-        // レート戦セクションに移動してログインを促す
-        if (window.toggleContentArea) {
-            window.toggleContentArea('rateMatch', true); // 強制的にサイドバーを開く
-        } else {
-            console.error("toggleContentArea function not available.");
-        }
-    }
-
-    async function handleHomeLogoutButtonClick() {
-        // rateMatch.jsのログアウト処理を呼び出す
-        if (window.handleLogoutButtonClickFromRateMatch) {
-            await window.handleLogoutButtonClickFromRateMatch();
-        } else {
-            console.error("handleLogoutButtonClickFromRateMatch function not available.");
-            await window.showCustomDialog('エラー', 'ログアウト機能が利用できません。レート戦セクションからお試しください。');
-        }
-    }
-
-    // ログイン状態が変更されたときにUIを更新
-    document.removeEventListener('loginStateChanged', updateLoginStatusUI);
+    // ログイン状態の変更を監視
+    // loginStateChanged イベントは main.js や rateMatch.js からディスパッチされると仮定
     document.addEventListener('loginStateChanged', updateLoginStatusUI);
-
-    updateLoginStatusUI(); // 初期ロード時にもUIを更新
-};
-void 0; // Explicitly return undefined for Firefox compatibility
+    // 初期表示を更新
+    updateLoginStatusUI();
+}

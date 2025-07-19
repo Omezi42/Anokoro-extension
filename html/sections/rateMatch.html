@@ -18,13 +18,6 @@
     </div>
 </div>
 
-<!-- ★★★ 追加: サーバー接続状態表示UI ★★★ -->
-<div id="connection-status-container" class="info-box">
-    <h3>サーバー接続状態</h3>
-    <p id="connection-status-text">未接続</p>
-    <button id="reconnect-button" style="display: none;">再接続</button>
-</div>
-
 <!-- アカウント認証セクション -->
 <div id="auth-section">
     <h3>アカウント登録 / ログイン</h3>
@@ -67,7 +60,8 @@
 
     <!-- マッチング中の表示 -->
     <div id="matching-status" style="display: none;">
-        <p id="matching-status-text">対戦相手を検索中...</p>
+        <!-- マッチング人数を表示する要素を追加 -->
+        <p id="matching-status-text">対戦相手を検索中... (<span id="queue-count-display">--</span>人)</p>
         <div class="spinner"></div>
         <button id="cancel-matching-button-in-status">マッチングキャンセル</button>
     </div>

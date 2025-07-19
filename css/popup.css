@@ -1,0 +1,218 @@
+/* css/popup.css */
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&display=swap');
+
+:root {
+    /* デフォルトテーマのカラーパレット */
+    --font-family-main: 'M PLUS Rounded 1c', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+    --color-background: #fdfaf4;
+    --color-primary: #3a8c6a;
+    --color-secondary: #f3ae4b;
+    --color-accent: #e87a5a;
+    --color-text-main: #3a3a3a;
+    --color-text-light: #6c6c6c;
+    --color-border: #dcd6c9;
+    --color-white: #ffffff;
+}
+
+/* ダークテーマのカラーパレット */
+body.theme-dark {
+    --color-background: #2c2c2c;
+    --color-primary: #78c09a;
+    --color-secondary: #f7d794;
+    --color-accent: #f09a80;
+    --color-text-main: #e0e0e0;
+    --color-text-light: #b0b0b0;
+    --color-border: #555555;
+    --color-white: #3a3a3a;
+}
+
+
+body {
+    font-family: var(--font-family-main);
+    background-color: var(--color-background); /* テーマによって切り替わる */
+    width: 280px;
+    margin: 0;
+    padding: 0;
+    color: var(--color-text-main); /* テーマによって切り替わる */
+}
+
+.popup-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+}
+
+.popup-header {
+    text-align: center;
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+.header-icon {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 5px;
+    animation: bird-float 3s ease-in-out infinite;
+}
+
+@keyframes bird-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.popup-header h1 {
+    font-size: 1.5em;
+    color: var(--color-primary); /* テーマによって切り替わる */
+    margin: 0;
+    font-weight: 700;
+}
+
+.main-action {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.go-to-game-button {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.1em;
+    font-weight: 700;
+    background-color: var(--color-accent); /* テーマによって切り替わる */
+    color: var(--color-white); /* テーマによって切り替わる */
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.go-to-game-button:hover {
+    background-color: #d16a4c; /* デフォルトのホバー色 */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+body.theme-dark .go-to-game-button:hover {
+    background-color: #d8993c; /* ダークテーマのホバー色 */
+}
+
+
+.info-panel {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    background-color: var(--color-white); /* テーマによって切り替わる */
+    border: 1px solid var(--color-border); /* テーマによって切り替わる */
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+}
+
+.info-item {
+    text-align: center;
+    flex: 1;
+}
+
+.info-item:first-child {
+    border-right: 1px solid var(--color-border); /* テーマによって切り替わる */
+}
+
+.info-label {
+    display: block;
+    font-size: 0.8em;
+    color: var(--color-text-light); /* テーマによって切り替わる */
+    margin-bottom: 4px;
+}
+
+.info-label .fas {
+    margin-right: 4px;
+}
+
+.info-value {
+    display: block;
+    font-size: 1.2em;
+    font-weight: 700;
+    color: var(--color-primary); /* テーマによって切り替わる */
+}
+
+.popup-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    border-top: 1px dashed var(--color-border); /* テーマによって切り替わる */
+    padding-top: 15px;
+}
+
+.popup-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-white); /* テーマによって切り替わる */
+    color: var(--color-text-main); /* テーマによって切り替わる */
+    border: 1px solid var(--color-border); /* テーマによって切り替わる */
+    border-radius: 12px;
+    padding: 12px 8px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 500;
+    text-align: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.popup-button:hover {
+    transform: translateY(-3px);
+    background-color: #f8f6f0; /* デフォルトのホバー色 */
+    border-color: var(--color-secondary); /* テーマによって切り替わる */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+body.theme-dark .popup-button:hover {
+    background-color: #444; /* ダークテーマのホバー色 */
+    border-color: var(--color-secondary);
+}
+
+
+.popup-button .icon {
+    font-size: 1.6em;
+    margin-bottom: 8px;
+    color: var(--color-primary); /* テーマによって切り替わる */
+    transition: color 0.2s ease;
+}
+
+.popup-button:hover .icon {
+    color: var(--color-secondary); /* テーマによって切り替わる */
+}
+
+.popup-button span {
+    font-weight: 700;
+}
+
+.popup-footer {
+    margin-top: 15px;
+    width: 100%;
+    text-align: right;
+}
+
+.options-link {
+    background: none;
+    border: none;
+    color: var(--color-text-light); /* テーマによって切り替わる */
+    font-size: 0.9em;
+    cursor: pointer;
+    padding: 5px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.2s ease;
+}
+
+.options-link:hover {
+    color: var(--color-primary); /* テーマによって切り替わる */
+}

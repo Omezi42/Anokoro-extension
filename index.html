@@ -1,55 +1,36 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>あの頃の自作TCG 拡張機能体験ページ</title>
-    <link rel="icon" type="image/png" href="images/illust_桜小鳥.png">
+    <title>あの頃の自作TCGアシスタント</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/option.css">
+    <link rel="stylesheet" href="./css/popup.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&display=swap">
-    <link rel="stylesheet" href="css/style.css">
+
+    <link rel="icon" href="./images/illust_桜小鳥.png" type="image/png">
 </head>
 <body>
-
-    <div id="app-container">
-        <!-- サイドバー（メニュー） -->
-        <div id="tcg-content-area">
-            <div id="tcg-sidebar-header">
-                <!-- ボタン類のみにする -->
-                <button class="tcg-menu-icon" data-section="home" title="ホーム"><i class="fas fa-home"></i></button>
-                <button class="tcg-menu-icon" data-section="rateMatch" title="レート戦"><i class="fas fa-fist-raised"></i></button>
-                <button class="tcg-menu-icon" data-section="battleRecord" title="戦いの記録"><i class="fas fa-trophy"></i></button>
-                <button class="tcg-menu-icon" data-section="memo" title="メモ"><i class="fas fa-clipboard"></i></button>
-                <button class="tcg-menu-icon" data-section="search" title="検索"><i class="fas fa-search"></i></button>
-                <button class="tcg-menu-icon" data-section="minigames" title="ミニゲーム"><i class="fas fa-gamepad"></i></button>
-            </div>
-            <div id="tcg-sections-wrapper"></div>
-        </div>
-
-        <!-- メインコンテンツ -->
-        <div id="main-content-placeholder">
-            <!-- ハンバーガーメニューを削除 -->
-            <h1>『あの頃の自作TCG』</h1>
-            <p>（本来のゲーム画面領域）</p>
-            <p>このページは拡張機能をwebページとして提供しているものです。<br>webページとしてデバッグしていないので一部動作しないかもしれません。</p>
-            <p>実際の拡張機能はfirefoxでインストールしてください。<br>（ただし現在は審査中です。）</p>
-            <p>右下のアイコンから各機能をお試しください。</p>
-        </div>
-    </div>
-    
-    <!-- 桜小鳥のイラストをapp-containerの外に移動し、常に表示 -->
-    <div id="tcg-menu-toggle-bird" style="background-image: url('images/illust_桜小鳥.png');" title="アシスタントメニューを開く/閉じる"></div>
-
-    <!-- カスタムダイアログ用のHTML -->
-    <div id="tcg-custom-dialog-overlay">
-        <div class="tcg-modal-content">
-            <h3 id="tcg-dialog-title"></h3>
-            <p id="tcg-dialog-message"></p>
-            <div class="dialog-buttons" id="tcg-dialog-buttons"></div>
-        </div>
+    <div style="text-align: center; margin-top: 20px;">
+        <h1>あの頃の自作TCGアシスタント Web版</h1>
+        <p>このページは拡張機能をwebページとして提供しているものです。<br>webページとしてデバッグしていないので一部動作しないかもしれません。</p>
+        <p>実際の拡張機能はfirefoxでインストールしてください。<br><a href="https://addons.mozilla.org/ja/firefox/addon/%E3%81%82%E3%81%AE%E9%A0%83%E3%81%AE%E8%87%AA%E4%BD%9Ctcg%E6%8B%A1%E5%BC%B5%E6%A9%9F%E8%83%BD/">https://addons.mozilla.org/ja/firefox/addon/あの頃の自作TCG拡張機能/</a></p>
+        <p>右下のアイコンから各機能をお試しください。</p>
+        <button id="go-to-game-button-main" style="padding: 15px 30px; font-size: 1.2em; background-color: #e87a5a; color: white; border: none; border-radius: 12px; cursor: pointer;">
+            <i class="fas fa-play-circle"></i> 『あの頃の自作TCG』をプレイ
+        </button>
     </div>
 
-    <!-- JavaScriptの読み込み -->
-    <script src="js/main.js"></script>
+    <div id="tcg-extension-root"></div>
+
+    <script type="module" src="./js/main.js"></script>
+    <script>
+        // 「ゲームをプレイ」ボタンのイベントリスナー
+        document.getElementById('go-to-game-button-main').addEventListener('click', () => {
+            window.open('https://unityroom.com/games/anokorotcg', '_blank');
+        });
+    </script>
 </body>
 </html>

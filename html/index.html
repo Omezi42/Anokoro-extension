@@ -1,15 +1,63 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>TCG拡張機能</title>
-    <!-- style.css は manifest.json で content_scripts として注入されるため、ここでは不要 -->
-    <!-- Font Awesomeはmain.jsで動的にロードされる -->
-    
-    <!-- Firebase SDK CDNの読み込みを削除。main.jsで動的に注入します。 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あの頃の自作TCG 拡張機能体験ページ</title>
+    <link rel="icon" type="image/png" href="images/illust_桜小鳥.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- 拡張機能のUIはmain.jsによって動的に挿入されます -->
-    <!-- bodyは空のままにしておきます。 -->
+
+    <div id="app-container">
+        <div id="tcg-content-area">
+            <div id="tcg-sidebar-header">
+                <button class="tcg-menu-icon" data-section="home" title="ホーム"><i class="fas fa-home"></i></button>
+                <button class="tcg-menu-icon" data-section="rateMatch" title="レート戦"><i class="fas fa-fist-raised"></i></button>
+                <button class="tcg-menu-icon" data-section="battleRecord" title="戦いの記録"><i class="fas fa-trophy"></i></button>
+                <button class="tcg-menu-icon" data-section="memo" title="メモ"><i class="fas fa-clipboard"></i></button>
+                <button class="tcg-menu-icon" data-section="search" title="検索"><i class="fas fa-search"></i></button>
+                <button class="tcg-menu-icon" data-section="minigames" title="ミニゲーム"><i class="fas fa-gamepad"></i></button>
+            </div>
+            <div id="tcg-sections-wrapper">
+                </div>
+        </div>
+
+        <div id="main-content-placeholder">
+            <h1>『あの頃の自作TCG』</h1>
+            <p>（本来のゲーム画面領域）</p>
+            <p>このページは拡張機能をWebページとして体験いただくためのものです。</p>
+            <p>右下のアイコンをクリックまたはドラッグして、各機能をお試しください。</p>
+        </div>
+    </div>
+    
+    <div id="tcg-bird-container">
+        <div id="tcg-menu-toggle-bird" style="background-image: url('images/illust_桜小鳥.png');" title="アシスタントメニューを開く/閉じる"></div>
+        <div id="tcg-bird-speech-bubble" class="hidden">
+            <p id="tcg-bird-speech-text">こんにちは！</p>
+            <small>（クリックで閉じる）</small>
+        </div>
+    </div>
+
+    <div id="tcg-custom-dialog-overlay">
+        <div class="tcg-modal-content">
+            <h3 id="tcg-dialog-title"></h3>
+            <p id="tcg-dialog-message"></p>
+            <div class="dialog-buttons" id="tcg-dialog-buttons"></div>
+        </div>
+    </div>
+
+    <div id="tcg-card-detail-modal-overlay">
+        </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/sections/home.js"></script>
+    <script src="js/sections/rateMatch.js"></script>
+    <script src="js/sections/battleRecord.js"></script>
+    <script src="js/sections/memo.js"></script>
+    <script src="js/sections/search.js"></script>
+    <script src="js/sections/minigames.js"></script>
 </body>
 </html>
