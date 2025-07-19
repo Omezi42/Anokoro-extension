@@ -1,23 +1,15 @@
 // js/options.js
 
 document.addEventListener('DOMContentLoaded', () => {
-    // const a = (typeof browser !== "undefined") ? browser : chrome; // 削除
-    // if (typeof a === "undefined" || typeof a.runtime === "undefined") { // 削除
-    //     console.error("TCG Assistant Options: Could not find browser/chrome runtime API."); // 削除
-    //     return; // 削除
-    // } // 削除
-
     const notificationToggle = document.getElementById('notification-toggle');
     const queueNotificationToggle = document.getElementById('queue-notification-toggle');
     const themeSelect = document.getElementById('theme-select');
     const saveButton = document.getElementById('save-button');
     const saveStatus = document.getElementById('save-status');
 
-    // 設定を読み込んでUIに反映
     const restoreOptions = () => {
-        // localStorage から設定を読み込む
-        const notifications = localStorage.getItem('notifications') === 'true'; // デフォルトはfalseとして扱うか、明示的な初期値を設定
-        const queueNotifications = localStorage.getItem('queueNotifications') === 'true'; // デフォルトはfalse
+        const notifications = localStorage.getItem('notifications') === 'true';
+        const queueNotifications = localStorage.getItem('queueNotifications') === 'true';
         const selectedTheme = localStorage.getItem('selectedTheme') || 'default';
 
         console.log("Options restored:", { notifications, queueNotifications, selectedTheme });
@@ -32,13 +24,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // 設定を保存
     const saveOptions = () => {
         const notifications = notificationToggle ? notificationToggle.checked : true;
         const queueNotifications = queueNotificationToggle ? queueNotificationToggle.checked : false;
         const selectedTheme = themeSelect ? themeSelect.value : 'default';
 
-        // localStorage に設定を保存
         localStorage.setItem('notifications', notifications.toString());
         localStorage.setItem('queueNotifications', queueNotifications.toString());
         localStorage.setItem('selectedTheme', selectedTheme);
@@ -50,15 +40,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveStatus.textContent = '';
             }, 1500);
         }
-        // テーマ変更をメインUIに通知するために postMessage を使用
-        // main.js が iframe 内で動作している場合、window.parent を使用
-        // あるいは、main.js が直接ページにある場合は window.applyTheme() を呼び出す
-        if (window.parent && window.parent.applyTheme) { // main.js で applyTheme がグローバルに定義されている場合
-             window.parent.applyTheme(selectedTheme);
-        } else if (window.opener && window.opener.applyTheme) { // options.html が popup から開かれた場合
-             window.opener.applyTheme(selectedTheme);
+
+        // テーマ変更をmain.jsに通知するために直接関数を呼び出す
+        // main.jsが同じウィンドウのグローバルスコープでロードされていると仮定
+        if (typeof window.applyTheme === 'function') {
+            window.applyTheme(selectedTheme);
+            console.log("Called window.applyTheme from options.js");
         } else {
-             console.warn("Could not find a way to apply theme to main UI.");
+            console.warn("window.applyTheme is not available. Cannot apply theme directly.");
+            // オプションページがポップアップ/別タブで開かれている場合、
+            // メインページにメッセージを送る代替手段も残す
+            if (window.opener && typeof window.opener.applyTheme === 'function') {
+                window.opener.applyTheme(selectedTheme);
+                console.log("Called window.opener.applyTheme from options.js");
+            }
         }
     };
 
