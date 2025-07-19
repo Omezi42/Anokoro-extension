@@ -1424,3 +1424,32 @@ body {
     max-width: 800px; /* 例: ページの最大幅 */
     width: 100%;
 }
+/* css/style.css に追加 */
+
+#main-content-wrapper {
+    margin-left: auto; /* 左マージンを自動で設定 */
+    margin-right: auto; /* 右マージンを自動で設定 */
+    max-width: 960px; /* 例えば、コンテンツの最大幅を設定 */
+    padding: 20px; /* 内側の余白 */
+    box-sizing: border-box; /* パディングを幅に含める */
+
+    /* サイドバーが開いている場合にメインコンテンツの幅を制限する */
+    /* これはJavaScriptで制御することも可能ですが、CSSで直接行う場合の例 */
+    /* サイドバーの幅は --sidebar-width で定義されています */
+    /* サイドバーが開くと body に active クラスが付く場合などを想定 */
+    transition: padding-right 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* サイドバーが開いたときにメインコンテンツの右パディングを調整 */
+/* body.active は、サイドバーが開いたときにbodyタグにactiveクラスがつく場合を想定 */
+body.active #main-content-wrapper {
+    padding-right: calc(var(--sidebar-width) + 20px); /* サイドバーの幅 + 少し余白 */
+    max-width: calc(100vw - var(--sidebar-width) - 40px); /* ビューポートの幅からサイドバーと両側の余白を引く */
+}
+
+/* text-align: center; は、タイトルやボタンを含む div に適用されているので、
+   #main-content-wrapper には必要ないかもしれません。
+   もし、#main-content-wrapper の直下にテキストが続く場合は必要です。 */
+#main-content-wrapper > div {
+    text-align: center; /* スクリーンショットの見た目と合わせる */
+}
