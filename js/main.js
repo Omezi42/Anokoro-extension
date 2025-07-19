@@ -102,7 +102,8 @@
         const existingModal = document.getElementById('tcg-card-detail-modal-overlay');
         if (existingModal) existingModal.remove();
 
-        const cardImageUrl = await window.tcgAssistant.fetchImage(`https://omezi42.github.io/tcg-assistant-images/cards/${encodeURIComponent(card.image_filename)}.png`) || 'https://placehold.co/200x280/eee/333?text=No+Image';
+        // 日本語のカード名を使用して画像パスを構築
+        const cardImageUrl = await window.tcgAssistant.fetchImage(`https://omezi42.github.io/tcg-assistant-images/cards/${encodeURIComponent(card.name)}.png`) || 'https://placehold.co/200x280/eee/333?text=No+Image';
 
         const getInfo = (prefix) => card.info.find(i => i.startsWith(prefix))?.replace(prefix, '').replace('です。', '') || 'N/A';
         const getEffect = () => card.info.find(i => i.startsWith("このカードの効果は、「"))?.replace("このカードの効果は、「", "").replace("」です。", "") || '（効果なし）';
@@ -400,10 +401,16 @@
         bubble.classList.toggle('align-left', containerRect.left + (containerRect.width / 2) < window.innerWidth / 2);
         bubble.classList.toggle('align-right', containerRect.left + (containerRect.width / 2) >= window.innerWidth / 2);
 
-        // 吹き出しの三角の位置（::after疑似要素）はCSSで調整するため、ここではクラスをトグル
-        // CSSに以下を追加する必要がある:
+        // CSSで吹き出しの三角の位置を調整するためのクラスをトグル
+        // style.css に以下を追加する必要がある:
         // .tcg-bird-speech-bubble.align-left::after { right: auto; left: 30px; border-width: 12px 0 0 12px; border-color: var(--color-primary) transparent transparent transparent; }
         // .tcg-bird-speech-bubble.align-right::after { left: auto; right: 30px; border-width: 12px 12px 0 0; border-color: var(--color-primary) transparent transparent transparent; }
+        bubble.classList.remove('align-left', 'align-right'); // 毎回リセットしてから適用
+        if (containerRect.left + (containerRect.width / 2) < window.innerWidth / 2) {
+            bubble.classList.add('align-left');
+        } else {
+            bubble.classList.add('align-right');
+        }
 
 
         bubble.innerHTML = html;
@@ -449,7 +456,7 @@
         } catch (error) {
             window.showCustomDialog('エラー', `データ読み込みエラー: ${error.message}`);
         }
-        
+
         const isSidebarOpen = localStorage.getItem('isSidebarOpen') === 'true';
         const activeSection = localStorage.getItem('activeSection') || 'home';
         const birdPosition = JSON.parse(localStorage.getItem('birdPosition') || '{}');

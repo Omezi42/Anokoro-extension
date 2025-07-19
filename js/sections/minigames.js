@@ -82,8 +82,8 @@ export function initialize() {
             quizImageArea.style.display = 'flex';
             quizCanvas.style.display = 'block';
             try {
-                // 画像読み込みロジックを直接呼び出す
-                await loadImageForQuiz(currentQuiz.card.image_filename); // image_filename を使用
+                // 日本語のカード名を使用して画像読み込みロジックを直接呼び出す
+                await loadImageForQuiz(currentQuiz.card.name);
                 drawQuizImage();
             } catch (error) {
                 await window.showCustomDialog('エラー', `クイズ画像の読み込みに失敗しました: ${currentQuiz.card.name}`);
@@ -111,8 +111,8 @@ export function initialize() {
         }
     }
 
-    // 画像取得ロジックをWeb互換に修正
-    async function loadImageForQuiz(imageFilename) { // cardName から imageFilename に変更
+    // 画像取得ロジックをWeb互換に修正し、日本語カード名を使用
+    async function loadImageForQuiz(cardName) { // cardName に変更
         const loadImage = (url) => new Promise((resolve, reject) => {
             const img = new Image();
             img.onload = () => resolve(img);
@@ -125,13 +125,13 @@ export function initialize() {
 
         for (let i = 0; i < MAX_RETRIES; i++) {
             try {
-                // 通常のカード画像をロード
-                const fullImageUrl = `${imageBaseUrl}${encodeURIComponent(imageFilename)}.png`;
+                // 通常のカード画像をロード (日本語カード名を使用)
+                const fullImageUrl = `${imageBaseUrl}${encodeURIComponent(cardName)}.png`;
                 currentQuiz.fullCardImage = await loadImage(fullImageUrl);
 
-                // シルエットクイズの場合のみ、透明画像をロード
+                // シルエットクイズの場合のみ、透明画像をロード (日本語カード名を使用)
                 if (currentQuiz.type === 'silhouette') {
-                    const transparentImageUrl = `${imageBaseUrl}${encodeURIComponent(imageFilename)}_transparent.png`;
+                    const transparentImageUrl = `${imageBaseUrl}${encodeURIComponent(cardName)}_transparent.png`;
                     currentQuiz.transparentCardImage = await loadImage(transparentImageUrl);
                 }
 
@@ -144,8 +144,12 @@ export function initialize() {
                     let targetWidth, targetHeight;
 
                     if (currentQuiz.type === 'silhouette') {
-                        const CROP_WIDTH = 457 - 20;
-                        const CROP_HEIGHT = 310 - 90;
+                        const CROP_X1 = 20;
+                        const CROP_Y1 = 90;
+                        const CROP_X2 = 457;
+                        const CROP_Y2 = 310;
+                        const CROP_WIDTH = CROP_X2 - CROP_X1;
+                        const CROP_HEIGHT = CROP_Y2 - CROP_Y1;
                         const croppedAspectRatio = CROP_WIDTH / CROP_HEIGHT;
                         const parentAspectRatio = parentWidth / parentHeight;
 
